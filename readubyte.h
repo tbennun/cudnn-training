@@ -14,6 +14,7 @@
 #define __CUDNN_TRAINING_READUBYTE_H
 
 #include <cstdint>
+#include <cstddef>
 
 /**
  * Obtains images and labels from a UByte dataset. If "data" and "labels" are null,
