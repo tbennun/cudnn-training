@@ -26,3 +26,15 @@
 *.exe
 *.out
 *.app
+
+*.suo
+*.user
+*.sdf
+*.opensdf
+*.bin
+Debug/
+Release/
+x64/
+Win32/
+*-ubyte
+*.pdb
