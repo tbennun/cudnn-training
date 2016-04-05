@@ -472,7 +472,7 @@ struct TrainingContext
 										   data, conv1filterDesc, pconv1, conv1Desc, 
 										   conv1algo, workspace, m_workspaceSize, &beta,
 										   conv1Tensor, conv1));
-		checkCUDNN(cudnnAddTensor(cudnnHandle, CUDNN_ADD_SAME_C, &alpha, conv1BiasTensor,
+		checkCUDNN(cudnnAddTensor_v2(cudnnHandle, CUDNN_ADD_SAME_C, &alpha, conv1BiasTensor,
 			                      pconv1bias, &alpha, conv1Tensor, conv1));
 
 		// Pool1 layer
@@ -484,7 +484,7 @@ struct TrainingContext
 										   pool1, conv2filterDesc, pconv2, conv2Desc, 
 										   conv2algo, workspace, m_workspaceSize, &beta,
 										   conv2Tensor, conv2));
-		checkCUDNN(cudnnAddTensor(cudnnHandle, CUDNN_ADD_SAME_C, &alpha, conv2BiasTensor,
+		checkCUDNN(cudnnAddTensor_v2(cudnnHandle, CUDNN_ADD_SAME_C, &alpha, conv2BiasTensor,
 			                      pconv2bias, &alpha, conv2Tensor, conv2));
 
 		// Pool2 layer
@@ -601,11 +601,11 @@ struct TrainingContext
 												dpool2, &beta, conv2BiasTensor, gconv2bias));
 
 		
-		checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha, pool1Tensor,
+		checkCUDNN(cudnnConvolutionBackwardFilter_v2(cudnnHandle, &alpha, pool1Tensor,
 												  pool1, conv2Tensor, dpool2, conv2Desc, 
 												  &beta, conv2filterDesc, gconv2));
 	
-		checkCUDNN(cudnnConvolutionBackwardData(cudnnHandle, &alpha, conv2filterDesc,
+		checkCUDNN(cudnnConvolutionBackwardData_v2(cudnnHandle, &alpha, conv2filterDesc,
 												pconv2, conv2Tensor, dpool2, conv2Desc, 
 												&beta, pool1Tensor, dconv2));
 		
@@ -618,7 +618,7 @@ struct TrainingContext
 		checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv1Tensor,
 												dpool1, &beta, conv1BiasTensor, gconv1bias));
 		
-		checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha, dataTensor,
+		checkCUDNN(cudnnConvolutionBackwardFilter_v2(cudnnHandle, &alpha, dataTensor,
 												  data, conv1Tensor, dpool1, conv1Desc, 
 												  &beta, conv1filterDesc, gconv1));
 
@@ -697,7 +697,7 @@ int main(int argc, char **argv)
 		return 3;
 
 	printf("Done. Training dataset size: %d, Test dataset size: %d\n", (int)train_size, (int)test_size);
-	printf("Batch size: %d, iterations: %d\n", FLAGS_batch_size, FLAGS_iterations);
+	printf("Batch size: %lld, iterations: %d\n", FLAGS_batch_size, FLAGS_iterations);
 
 	// This code snippet saves a random image and its label
 	/*
