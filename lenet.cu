@@ -697,7 +697,7 @@ int main(int argc, char **argv)
 		return 3;
 
 	printf("Done. Training dataset size: %d, Test dataset size: %d\n", (int)train_size, (int)test_size);
-	printf("Batch size: %d, iterations: %d\n", FLAGS_batch_size, FLAGS_iterations);
+	printf("Batch size: %lld, iterations: %d\n", FLAGS_batch_size, FLAGS_iterations);
 
 	// This code snippet saves a random image and its label
 	/*
