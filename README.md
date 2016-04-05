@@ -17,6 +17,15 @@ Compilation
 
 The project can either be compiled with CMake (cross-platform) or Visual Studio.
 
+To compile with CMake, run the following commands:
+```bash
+~: $ cd cudnn-training/
+~/cudnn-training: $ mkdir build
+~/cudnn-training: $ cd build/
+~/cudnn-training/build: $ cmake ..
+~/cudnn-training/build: $ make
+```
+
 To enable gflags support, uncomment the line in CMakeLists.txt. In the Visual Studio project, define the macro USE_GFLAGS.
 
 Running
