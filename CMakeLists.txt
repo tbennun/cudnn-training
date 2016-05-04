@@ -22,8 +22,8 @@ if(USE_GFLAGS)
   add_definitions(-DUSE_GFLAGS)
 endif()
 
-include_directories($ENV{CUDNN_PATH})
-link_directories($ENV{CUDNN_PATH})
+include_directories($ENV{CUDNN_PATH} $ENV{CUDNN_PATH}/include)
+link_directories($ENV{CUDNN_PATH} $ENV{CUDNN_PATH}/lib)
 
 cuda_add_executable(trainlenet lenet.cu readubyte.cpp)
 cuda_add_cublas_to_target(trainlenet)
