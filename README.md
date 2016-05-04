@@ -26,7 +26,9 @@ To compile with CMake, run the following commands:
 ~/cudnn-training/build: $ make
 ```
 
-To enable gflags support, uncomment the line in CMakeLists.txt. In the Visual Studio project, define the macro USE_GFLAGS.
+If compiling under linux, make sure to either set the ```CUDNN_PATH``` environment variable to the path CUDNN is installed to, or extract CUDNN to the CUDA toolkit path.
+
+To enable gflags support, uncomment the line in CMakeLists.txt. In the Visual Studio project, define the macro ```USE_GFLAGS```.
 
 Running
 =======
