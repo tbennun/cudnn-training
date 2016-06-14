@@ -288,7 +288,10 @@ struct TrainingContext
     cudnnFilterDescriptor_t conv1filterDesc, conv2filterDesc;
     cudnnConvolutionDescriptor_t conv1Desc, conv2Desc;
     cudnnConvolutionFwdAlgo_t conv1algo, conv2algo;
+    cudnnConvolutionBwdFilterAlgo_t conv1bwfalgo, conv2bwfalgo;
+    cudnnConvolutionBwdDataAlgo_t conv2bwdalgo;
     cudnnPoolingDescriptor_t poolDesc;
+    cudnnActivationDescriptor_t fc1Activation;
 
     int m_gpuid;
     int m_batchSize;
@@ -322,6 +325,8 @@ struct TrainingContext
         checkCUDNN(cudnnCreateTensorDescriptor(&fc1Tensor));
         checkCUDNN(cudnnCreateTensorDescriptor(&fc2Tensor));
 
+        checkCUDNN(cudnnCreateActivationDescriptor(&fc1Activation));
+
         checkCUDNN(cudnnCreateFilterDescriptor(&conv1filterDesc));
         checkCUDNN(cudnnCreateFilterDescriptor(&conv2filterDesc));
 
@@ -345,6 +350,7 @@ struct TrainingContext
             
         checkCUDNN(cudnnSetPooling2dDescriptor(poolDesc,
                                                CUDNN_POOLING_MAX,
+                                               CUDNN_PROPAGATE_NAN,
                                                pool1.size, pool1.size,
                                                0, 0,
                                                pool1.stride, pool1.stride));
@@ -365,11 +371,17 @@ struct TrainingContext
                                               CUDNN_DATA_FLOAT,
                                               batch_size, fc2.outputs, 1, 1));
 
+        checkCUDNN(cudnnSetActivationDescriptor(fc1Activation, CUDNN_ACTIVATION_RELU,
+                                                CUDNN_PROPAGATE_NAN, 0.0));
+
 
         // Set convolution tensor sizes and compute workspace size
         size_t workspace = 0;
         workspace = std::max(workspace, SetFwdConvolutionTensors(conv1, dataTensor, conv1Tensor, conv1filterDesc, conv1Desc, conv1algo));
+        workspace = std::max(workspace, SetBwdConvolutionTensors(dataTensor, conv1Tensor, conv1filterDesc, conv1Desc, &conv1bwfalgo, nullptr));
+
         workspace = std::max(workspace, SetFwdConvolutionTensors(conv2, pool1Tensor, conv2Tensor, conv2filterDesc, conv2Desc, conv2algo));
+        workspace = std::max(workspace, SetBwdConvolutionTensors(pool1Tensor, conv2Tensor, conv2filterDesc, conv2Desc, &conv2bwfalgo, &conv2bwdalgo));
 
         // The workspace is allocated later (if necessary)
         m_workspaceSize = workspace;
@@ -390,6 +402,7 @@ struct TrainingContext
         checkCUDNN(cudnnDestroyTensorDescriptor(pool2Tensor));
         checkCUDNN(cudnnDestroyTensorDescriptor(fc1Tensor));
         checkCUDNN(cudnnDestroyTensorDescriptor(fc2Tensor));
+        checkCUDNN(cudnnDestroyActivationDescriptor(fc1Activation));
         checkCUDNN(cudnnDestroyFilterDescriptor(conv1filterDesc));
         checkCUDNN(cudnnDestroyFilterDescriptor(conv2filterDesc));
         checkCUDNN(cudnnDestroyConvolutionDescriptor(conv1Desc));
@@ -416,6 +429,7 @@ struct TrainingContext
 
         checkCUDNN(cudnnSetFilter4dDescriptor(filterDesc,
                                               CUDNN_DATA_FLOAT,
+                                              CUDNN_TENSOR_NCHW,
                                               conv.out_channels,
                                               conv.in_channels, 
                                               conv.kernel_size,
@@ -472,7 +486,7 @@ struct TrainingContext
                                            data, conv1filterDesc, pconv1, conv1Desc, 
                                            conv1algo, workspace, m_workspaceSize, &beta,
                                            conv1Tensor, conv1));
-        checkCUDNN(cudnnAddTensor_v2(cudnnHandle, CUDNN_ADD_SAME_C, &alpha, conv1BiasTensor,
+        checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv1BiasTensor,
                                   pconv1bias, &alpha, conv1Tensor, conv1));
 
         // Pool1 layer
@@ -484,7 +498,7 @@ struct TrainingContext
                                            pool1, conv2filterDesc, pconv2, conv2Desc, 
                                            conv2algo, workspace, m_workspaceSize, &beta,
                                            conv2Tensor, conv2));
-        checkCUDNN(cudnnAddTensor_v2(cudnnHandle, CUDNN_ADD_SAME_C, &alpha, conv2BiasTensor,
+        checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv2BiasTensor,
                                   pconv2bias, &alpha, conv2Tensor, conv2));
 
         // Pool2 layer
@@ -510,7 +524,7 @@ struct TrainingContext
                                     fc1, ref_fc1.outputs));
 
         // ReLU activation
-        checkCUDNN(cudnnActivationForward(cudnnHandle, CUDNN_ACTIVATION_RELU, &alpha,
+        checkCUDNN(cudnnActivationForward(cudnnHandle, fc1Activation, &alpha,
                                           fc1Tensor, fc1, &beta, fc1Tensor, fc1relu));
 
         // FC2 layer
@@ -536,6 +550,43 @@ struct TrainingContext
                                        &alpha, fc2Tensor, fc2, &beta, fc2Tensor, result));
     }
 
+    size_t SetBwdConvolutionTensors(cudnnTensorDescriptor_t& srcTensorDesc, cudnnTensorDescriptor_t& dstTensorDesc,
+                                    cudnnFilterDescriptor_t& filterDesc, cudnnConvolutionDescriptor_t& convDesc, 
+                                    cudnnConvolutionBwdFilterAlgo_t *falgo, cudnnConvolutionBwdDataAlgo_t *dalgo)
+    {
+        size_t sizeInBytes = 0, tmpsize = 0;
+
+        // If backprop filter algorithm was requested
+        if (falgo)
+        {
+            checkCUDNN(cudnnGetConvolutionBackwardFilterAlgorithm(
+                cudnnHandle, srcTensorDesc, dstTensorDesc, convDesc, filterDesc,
+                CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST, 0, falgo));
+
+            checkCUDNN(cudnnGetConvolutionBackwardFilterWorkspaceSize(
+                cudnnHandle, srcTensorDesc, dstTensorDesc, convDesc, filterDesc, 
+                *falgo, &tmpsize));
+
+            sizeInBytes = std::max(sizeInBytes, tmpsize);
+        }
+
+        // If backprop data algorithm was requested
+        if (dalgo)
+        {
+            checkCUDNN(cudnnGetConvolutionBackwardDataAlgorithm(
+                cudnnHandle, filterDesc, dstTensorDesc, convDesc, srcTensorDesc,
+                CUDNN_CONVOLUTION_BWD_DATA_PREFER_FASTEST, 0, dalgo));
+
+            checkCUDNN(cudnnGetConvolutionBackwardDataWorkspaceSize(
+                cudnnHandle, filterDesc, dstTensorDesc, convDesc, srcTensorDesc, 
+                *dalgo, &tmpsize));
+
+            sizeInBytes = std::max(sizeInBytes, tmpsize);
+        }
+        
+        return sizeInBytes;
+    }
+
     void Backpropagation(ConvBiasLayer& layer_conv1, MaxPoolLayer& layer_pool1, ConvBiasLayer& layer_conv2, MaxPoolLayer& layer_pool2,
                          float *data, float *labels, float *conv1, float *pool1, float *conv2, float *pool2, float *fc1, float *fc1relu,
                          float *fc2, float *fc2smax, float *dloss_data,
@@ -547,7 +598,7 @@ struct TrainingContext
                          float *gconv2, float *gconv2bias, float *dconv2, float *dpool2,
                          float *gfc1, float *gfc1bias, float *dfc1, float *dfc1relu,
                          float *gfc2, float *gfc2bias, float *dfc2,
-                         float *onevec)
+                         void *workspace, float *onevec)
     {    
         float alpha = 1.0f, beta = 0.0f;
 
@@ -576,7 +627,7 @@ struct TrainingContext
                                     &alpha, pfc2, ref_fc2.inputs, dloss_data, ref_fc2.outputs, &beta, dfc2, ref_fc2.inputs));
         
         // ReLU activation
-        checkCUDNN(cudnnActivationBackward(cudnnHandle, CUDNN_ACTIVATION_RELU, &alpha,
+        checkCUDNN(cudnnActivationBackward(cudnnHandle, fc1Activation, &alpha,
                                            fc1Tensor, fc1relu, fc1Tensor, dfc2,
                                            fc1Tensor, fc1, &beta, fc1Tensor, dfc1relu));
 
@@ -601,12 +652,14 @@ struct TrainingContext
                                                 dpool2, &beta, conv2BiasTensor, gconv2bias));
 
         
-        checkCUDNN(cudnnConvolutionBackwardFilter_v2(cudnnHandle, &alpha, pool1Tensor,
-                                                  pool1, conv2Tensor, dpool2, conv2Desc, 
+        checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha, pool1Tensor,
+                                                  pool1, conv2Tensor, dpool2, conv2Desc,
+                                                  conv2bwfalgo, workspace, m_workspaceSize,
                                                   &beta, conv2filterDesc, gconv2));
     
-        checkCUDNN(cudnnConvolutionBackwardData_v2(cudnnHandle, &alpha, conv2filterDesc,
+        checkCUDNN(cudnnConvolutionBackwardData(cudnnHandle, &alpha, conv2filterDesc,
                                                 pconv2, conv2Tensor, dpool2, conv2Desc, 
+                                                conv2bwdalgo, workspace, m_workspaceSize,
                                                 &beta, pool1Tensor, dconv2));
         
         // Pool1 layer
@@ -618,8 +671,9 @@ struct TrainingContext
         checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv1Tensor,
                                                 dpool1, &beta, conv1BiasTensor, gconv1bias));
         
-        checkCUDNN(cudnnConvolutionBackwardFilter_v2(cudnnHandle, &alpha, dataTensor,
-                                                  data, conv1Tensor, dpool1, conv1Desc, 
+        checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha, dataTensor,
+                                                  data, conv1Tensor, dpool1, conv1Desc,
+                                                  conv1bwfalgo, workspace, m_workspaceSize,
                                                   &beta, conv1filterDesc, gconv1));
 
         // No need for convBackwardData because there are no more layers below
@@ -887,7 +941,7 @@ int main(int argc, char **argv)
                                 d_data, d_labels, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax, d_dlossdata,
                                 d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                                 d_gconv1, d_gconv1bias, d_dpool1, d_gconv2, d_gconv2bias, d_dconv2, d_dpool2, d_gfc1, d_gfc1bias, 
-                                d_dfc1, d_dfc1relu, d_gfc2, d_gfc2bias, d_dfc2, d_onevec);
+                                d_dfc1, d_dfc1relu, d_gfc2, d_gfc2bias, d_dfc2, d_cudnn_workspace, d_onevec);
 
         // Compute learning rate
         float learningRate = static_cast<float>(FLAGS_learning_rate * pow((1.0 + FLAGS_lr_gamma * iter), (-FLAGS_lr_power)));
