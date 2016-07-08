@@ -1035,6 +1035,7 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_dpool2));    
     checkCudaErrors(cudaFree(d_labels));
     checkCudaErrors(cudaFree(d_dlossdata));
+    checkCudaErrors(cudaFree(d_onevec));
     if (d_cudnn_workspace != nullptr)
         checkCudaErrors(cudaFree(d_cudnn_workspace));
 
