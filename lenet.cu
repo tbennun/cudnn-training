@@ -968,12 +968,12 @@ int main(int argc, char **argv)
         // Initialize a TrainingContext structure for testing (different batch size)
         TrainingContext test_context(FLAGS_gpu, 1, conv1, pool1, conv2, pool2, fc1, fc2);
 
-		// ensure correct workspaceSize is allocated for testing
-		if (context.m_workspaceSize < test_context.m_workspaceSize)
-		{
-			checkCudaErrors(cudaFree(d_cudnn_workspace));
-			checkCudaErrors(cudaMalloc(&d_cudnn_workspace, test_context.m_workspaceSize));
-		}
+        // Ensure correct workspaceSize is allocated for testing
+        if (context.m_workspaceSize < test_context.m_workspaceSize)
+        {
+            checkCudaErrors(cudaFree(d_cudnn_workspace));
+            checkCudaErrors(cudaMalloc(&d_cudnn_workspace, test_context.m_workspaceSize));
+        }
 
         int num_errors = 0;
         for (int i = 0; i < classifications; ++i)
