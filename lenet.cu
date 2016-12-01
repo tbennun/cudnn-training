@@ -342,7 +342,6 @@ struct TrainingContext
                                               CUDNN_DATA_FLOAT,
                                               1, conv1.out_channels,
                                               1, 1));
-/*
         checkCUDNN(cudnnSetTensor4dDescriptor(conv2BiasTensor,
                                               CUDNN_TENSOR_NCHW,
                                               CUDNN_DATA_FLOAT,
@@ -372,6 +371,7 @@ struct TrainingContext
                                               CUDNN_DATA_FLOAT,
                                               batch_size, fc2.outputs, 1, 1));
 
+/*
         checkCUDNN(cudnnSetActivationDescriptor(fc1Activation, CUDNN_ACTIVATION_RELU,
                                                 CUDNN_PROPAGATE_NAN, 0.0));
 
