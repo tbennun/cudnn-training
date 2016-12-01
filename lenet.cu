@@ -914,7 +914,6 @@ int main(int argc, char **argv)
     std::vector<float> train_images_float(train_images.size()), train_labels_float(train_size);
     for (size_t i = 0; i < train_size * channels * width * height; ++i)
         train_images_float[i] = (float)train_images[i] / 255.0f;
-    /*
     
     for (size_t i = 0; i < train_size; ++i)
         train_labels_float[i] = (float)train_labels[i];
@@ -923,6 +922,7 @@ int main(int argc, char **argv)
 
     // Use SGD to train the network
     checkCudaErrors(cudaDeviceSynchronize());
+    /*
     auto t1 = std::chrono::high_resolution_clock::now();
     for (int iter = 0; iter < FLAGS_iterations; ++iter)
     {
