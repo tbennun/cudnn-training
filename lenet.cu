@@ -781,7 +781,6 @@ int main(int argc, char **argv)
     // Initialize CUDNN/CUBLAS training context
     std::cout << "initializing context" << std::endl;
     TrainingContext context(FLAGS_gpu, FLAGS_batch_size, conv1, pool1, conv2, pool2, fc1, fc2);
-/*
     
     // Determine initial network structure
     if (FLAGS_pretrained)
@@ -825,7 +824,7 @@ int main(int argc, char **argv)
         for (auto&& iter : fc2.pbias)
             iter = static_cast<float>(dfc2(gen));
     }
-    
+
     /////////////////////////////////////////////////////////////////////////////
     // Create GPU data structures    
 
@@ -833,6 +832,10 @@ int main(int argc, char **argv)
     float *d_data, *d_labels, *d_conv1, *d_pool1, *d_conv2, *d_pool2, *d_fc1, *d_fc1relu, *d_fc2, *d_fc2smax;
     //                         Buffer    | Element       | N                   | C                  | H                                 | W
     //-----------------------------------------------------------------------------------------------------------------------------------------
+    std::cout << "context.m_batchSize " << context.m_batchSize << " channels " << channels << " height " << height << " width " << width << std::endl;
+    // hardcode height and wdith for now, to save having to load mnist data each time
+    height = 28;
+    width = 28;
     checkCudaErrors(cudaMalloc(&d_data,    sizeof(float) * context.m_batchSize * channels           * height                            * width));
     checkCudaErrors(cudaMalloc(&d_labels,  sizeof(float) * context.m_batchSize * 1                  * 1                                 * 1));
     checkCudaErrors(cudaMalloc(&d_conv1,   sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                  * conv1.out_width));
@@ -843,6 +846,7 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMalloc(&d_fc1relu, sizeof(float) * context.m_batchSize * fc1.outputs));
     checkCudaErrors(cudaMalloc(&d_fc2,     sizeof(float) * context.m_batchSize * fc2.outputs));
     checkCudaErrors(cudaMalloc(&d_fc2smax, sizeof(float) * context.m_batchSize * fc2.outputs));    
+    /*
 
     // Network parameters
     float *d_pconv1, *d_pconv1bias, *d_pconv2, *d_pconv2bias;
