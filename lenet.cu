@@ -308,12 +308,13 @@ struct TrainingContext
                     FullyConnectedLayer& fc1, FullyConnectedLayer& fc2) : ref_fc1(fc1), ref_fc2(fc2), m_gpuid(gpuid)
     {
         m_batchSize = batch_size;
-
+        std::cout << "TrainingContext constructor" << std::endl;
         // Create CUBLAS and CUDNN handles
         checkCudaErrors(cudaSetDevice(gpuid));
         checkCudaErrors(cublasCreate(&cublasHandle));
         checkCUDNN(cudnnCreate(&cudnnHandle));
-
+        std::cout << "cudnnHandle " << (void*)cudnnHandle << std::endl;
+/*
         // Create tensor descriptors
         checkCUDNN(cudnnCreateTensorDescriptor(&dataTensor));
         checkCUDNN(cudnnCreateTensorDescriptor(&conv1Tensor));
@@ -385,29 +386,30 @@ struct TrainingContext
 
         // The workspace is allocated later (if necessary)
         m_workspaceSize = workspace;
+        */
     }
 
     ~TrainingContext()
     {
-        checkCudaErrors(cudaSetDevice(m_gpuid));
+        // checkCudaErrors(cudaSetDevice(m_gpuid));
 
-        checkCudaErrors(cublasDestroy(cublasHandle));
-        checkCUDNN(cudnnDestroy(cudnnHandle));
-        checkCUDNN(cudnnDestroyTensorDescriptor(dataTensor));
-        checkCUDNN(cudnnDestroyTensorDescriptor(conv1Tensor));
-        checkCUDNN(cudnnDestroyTensorDescriptor(conv1BiasTensor));
-        checkCUDNN(cudnnDestroyTensorDescriptor(pool1Tensor));
-        checkCUDNN(cudnnDestroyTensorDescriptor(conv2Tensor));
-        checkCUDNN(cudnnDestroyTensorDescriptor(conv2BiasTensor));
-        checkCUDNN(cudnnDestroyTensorDescriptor(pool2Tensor));
-        checkCUDNN(cudnnDestroyTensorDescriptor(fc1Tensor));
-        checkCUDNN(cudnnDestroyTensorDescriptor(fc2Tensor));
-        checkCUDNN(cudnnDestroyActivationDescriptor(fc1Activation));
-        checkCUDNN(cudnnDestroyFilterDescriptor(conv1filterDesc));
-        checkCUDNN(cudnnDestroyFilterDescriptor(conv2filterDesc));
-        checkCUDNN(cudnnDestroyConvolutionDescriptor(conv1Desc));
-        checkCUDNN(cudnnDestroyConvolutionDescriptor(conv2Desc));
-        checkCUDNN(cudnnDestroyPoolingDescriptor(poolDesc));
+        // checkCudaErrors(cublasDestroy(cublasHandle));
+        // checkCUDNN(cudnnDestroy(cudnnHandle));
+        // checkCUDNN(cudnnDestroyTensorDescriptor(dataTensor));
+        // checkCUDNN(cudnnDestroyTensorDescriptor(conv1Tensor));
+        // checkCUDNN(cudnnDestroyTensorDescriptor(conv1BiasTensor));
+        // checkCUDNN(cudnnDestroyTensorDescriptor(pool1Tensor));
+        // checkCUDNN(cudnnDestroyTensorDescriptor(conv2Tensor));
+        // checkCUDNN(cudnnDestroyTensorDescriptor(conv2BiasTensor));
+        // checkCUDNN(cudnnDestroyTensorDescriptor(pool2Tensor));
+        // checkCUDNN(cudnnDestroyTensorDescriptor(fc1Tensor));
+        // checkCUDNN(cudnnDestroyTensorDescriptor(fc2Tensor));
+        // checkCUDNN(cudnnDestroyActivationDescriptor(fc1Activation));
+        // checkCUDNN(cudnnDestroyFilterDescriptor(conv1filterDesc));
+        // checkCUDNN(cudnnDestroyFilterDescriptor(conv2filterDesc));
+        // checkCUDNN(cudnnDestroyConvolutionDescriptor(conv1Desc));
+        // checkCUDNN(cudnnDestroyConvolutionDescriptor(conv2Desc));
+        // checkCUDNN(cudnnDestroyPoolingDescriptor(poolDesc));
     }
 
     size_t SetFwdConvolutionTensors(ConvBiasLayer& conv, cudnnTensorDescriptor_t& srcTensorDesc, cudnnTensorDescriptor_t& dstTensorDesc,
@@ -729,29 +731,29 @@ int main(int argc, char **argv)
 #ifdef USE_GFLAGS
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 #endif
-
+    std::cout << "main" << std::endl;
     size_t width, height, channels = 1;
 
-    // Open input data
-    printf("Reading input data\n");
+    // // Open input data
+    // printf("Reading input data\n");
     
-    // Read dataset sizes
-    size_t train_size = ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), nullptr, nullptr, width, height);
-    size_t test_size = ReadUByteDataset(FLAGS_test_images.c_str(), FLAGS_test_labels.c_str(), nullptr, nullptr, width, height);
-    if (train_size == 0)
-        return 1;
+    // // Read dataset sizes
+    // size_t train_size = ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), nullptr, nullptr, width, height);
+    // size_t test_size = ReadUByteDataset(FLAGS_test_images.c_str(), FLAGS_test_labels.c_str(), nullptr, nullptr, width, height);
+    // if (train_size == 0)
+    //     return 1;
     
-    std::vector<uint8_t> train_images(train_size * width * height * channels), train_labels(train_size);
-    std::vector<uint8_t> test_images(test_size * width * height * channels), test_labels(test_size);
+    // std::vector<uint8_t> train_images(train_size * width * height * channels), train_labels(train_size);
+    // std::vector<uint8_t> test_images(test_size * width * height * channels), test_labels(test_size);
 
-    // Read data from datasets
-    if (ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), &train_images[0], &train_labels[0], width, height) != train_size)
-        return 2;
-    if (ReadUByteDataset(FLAGS_test_images.c_str(), FLAGS_test_labels.c_str(), &test_images[0], &test_labels[0], width, height) != test_size)
-        return 3;
+    // // Read data from datasets
+    // if (ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), &train_images[0], &train_labels[0], width, height) != train_size)
+    //     return 2;
+    // if (ReadUByteDataset(FLAGS_test_images.c_str(), FLAGS_test_labels.c_str(), &test_images[0], &test_labels[0], width, height) != test_size)
+    //     return 3;
 
-    printf("Done. Training dataset size: %d, Test dataset size: %d\n", (int)train_size, (int)test_size);
-    printf("Batch size: %lld, iterations: %d\n", FLAGS_batch_size, FLAGS_iterations);
+    // printf("Done. Training dataset size: %d, Test dataset size: %d\n", (int)train_size, (int)test_size);
+    // printf("Batch size: %lld, iterations: %d\n", FLAGS_batch_size, FLAGS_iterations);
 
     // This code snippet saves a random image and its label
     /*
@@ -770,7 +772,6 @@ int main(int argc, char **argv)
                FLAGS_gpu, num_gpus);
         return 4;
     }
-
     // Create the LeNet network architecture
     ConvBiasLayer conv1((int)channels, 20, 5, (int)width, (int)height);
     MaxPoolLayer pool1(2, 2);
@@ -781,7 +782,9 @@ int main(int argc, char **argv)
     FullyConnectedLayer fc2(fc1.outputs, 10);
 
     // Initialize CUDNN/CUBLAS training context
+    std::cout << "initializing context" << std::endl;
     TrainingContext context(FLAGS_gpu, FLAGS_batch_size, conv1, pool1, conv2, pool2, fc1, fc2);
+/*
     
     // Determine initial network structure
     if (FLAGS_pretrained)
@@ -1011,40 +1014,40 @@ int main(int argc, char **argv)
         printf("Classification result: %.2f%% error (used %d images)\n", classification_error * 100.0f, (int)classifications);
     }
         
-    // Free data structures
-    checkCudaErrors(cudaFree(d_data));
-    checkCudaErrors(cudaFree(d_conv1));
-    checkCudaErrors(cudaFree(d_pool1));
-    checkCudaErrors(cudaFree(d_conv2));
-    checkCudaErrors(cudaFree(d_pool2));
-    checkCudaErrors(cudaFree(d_fc1));
-    checkCudaErrors(cudaFree(d_fc2));
-    checkCudaErrors(cudaFree(d_pconv1));
-    checkCudaErrors(cudaFree(d_pconv1bias));
-    checkCudaErrors(cudaFree(d_pconv2));
-    checkCudaErrors(cudaFree(d_pconv2bias));
-    checkCudaErrors(cudaFree(d_pfc1));
-    checkCudaErrors(cudaFree(d_pfc1bias));
-    checkCudaErrors(cudaFree(d_pfc2));
-    checkCudaErrors(cudaFree(d_pfc2bias));
-    checkCudaErrors(cudaFree(d_gconv1));
-    checkCudaErrors(cudaFree(d_gconv1bias));
-    checkCudaErrors(cudaFree(d_gconv2));
-    checkCudaErrors(cudaFree(d_gconv2bias));
-    checkCudaErrors(cudaFree(d_gfc1));
-    checkCudaErrors(cudaFree(d_gfc1bias));
-    checkCudaErrors(cudaFree(d_dfc1));
-    checkCudaErrors(cudaFree(d_gfc2));
-    checkCudaErrors(cudaFree(d_gfc2bias));
-    checkCudaErrors(cudaFree(d_dfc2));
-    checkCudaErrors(cudaFree(d_dpool1));
-    checkCudaErrors(cudaFree(d_dconv2));
-    checkCudaErrors(cudaFree(d_dpool2));    
-    checkCudaErrors(cudaFree(d_labels));
-    checkCudaErrors(cudaFree(d_dlossdata));
-    checkCudaErrors(cudaFree(d_onevec));
-    if (d_cudnn_workspace != nullptr)
-        checkCudaErrors(cudaFree(d_cudnn_workspace));
-
+    // // Free data structures
+    // checkCudaErrors(cudaFree(d_data));
+    // checkCudaErrors(cudaFree(d_conv1));
+    // checkCudaErrors(cudaFree(d_pool1));
+    // checkCudaErrors(cudaFree(d_conv2));
+    // checkCudaErrors(cudaFree(d_pool2));
+    // checkCudaErrors(cudaFree(d_fc1));
+    // checkCudaErrors(cudaFree(d_fc2));
+    // checkCudaErrors(cudaFree(d_pconv1));
+    // checkCudaErrors(cudaFree(d_pconv1bias));
+    // checkCudaErrors(cudaFree(d_pconv2));
+    // checkCudaErrors(cudaFree(d_pconv2bias));
+    // checkCudaErrors(cudaFree(d_pfc1));
+    // checkCudaErrors(cudaFree(d_pfc1bias));
+    // checkCudaErrors(cudaFree(d_pfc2));
+    // checkCudaErrors(cudaFree(d_pfc2bias));
+    // checkCudaErrors(cudaFree(d_gconv1));
+    // checkCudaErrors(cudaFree(d_gconv1bias));
+    // checkCudaErrors(cudaFree(d_gconv2));
+    // checkCudaErrors(cudaFree(d_gconv2bias));
+    // checkCudaErrors(cudaFree(d_gfc1));
+    // checkCudaErrors(cudaFree(d_gfc1bias));
+    // checkCudaErrors(cudaFree(d_dfc1));
+    // checkCudaErrors(cudaFree(d_gfc2));
+    // checkCudaErrors(cudaFree(d_gfc2bias));
+    // checkCudaErrors(cudaFree(d_dfc2));
+    // checkCudaErrors(cudaFree(d_dpool1));
+    // checkCudaErrors(cudaFree(d_dconv2));
+    // checkCudaErrors(cudaFree(d_dpool2));    
+    // checkCudaErrors(cudaFree(d_labels));
+    // checkCudaErrors(cudaFree(d_dlossdata));
+    // checkCudaErrors(cudaFree(d_onevec));
+    // if (d_cudnn_workspace != nullptr)
+    //     checkCudaErrors(cudaFree(d_cudnn_workspace));
+*/
     return 0;
 }
