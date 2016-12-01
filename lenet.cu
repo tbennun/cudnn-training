@@ -731,26 +731,26 @@ int main(int argc, char **argv)
     std::cout << "main" << std::endl;
     size_t width, height, channels = 1;
 
-    // // Open input data
-    // printf("Reading input data\n");
+    // Open input data
+    printf("Reading input data\n");
     
-    // // Read dataset sizes
-    // size_t train_size = ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), nullptr, nullptr, width, height);
-    // size_t test_size = ReadUByteDataset(FLAGS_test_images.c_str(), FLAGS_test_labels.c_str(), nullptr, nullptr, width, height);
-    // if (train_size == 0)
-    //     return 1;
+    // Read dataset sizes
+    size_t train_size = ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), nullptr, nullptr, width, height);
+    size_t test_size = ReadUByteDataset(FLAGS_test_images.c_str(), FLAGS_test_labels.c_str(), nullptr, nullptr, width, height);
+    if (train_size == 0)
+        return 1;
     
-    // std::vector<uint8_t> train_images(train_size * width * height * channels), train_labels(train_size);
-    // std::vector<uint8_t> test_images(test_size * width * height * channels), test_labels(test_size);
+    std::vector<uint8_t> train_images(train_size * width * height * channels), train_labels(train_size);
+    std::vector<uint8_t> test_images(test_size * width * height * channels), test_labels(test_size);
 
-    // // Read data from datasets
-    // if (ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), &train_images[0], &train_labels[0], width, height) != train_size)
-    //     return 2;
-    // if (ReadUByteDataset(FLAGS_test_images.c_str(), FLAGS_test_labels.c_str(), &test_images[0], &test_labels[0], width, height) != test_size)
-    //     return 3;
+    // Read data from datasets
+    if (ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), &train_images[0], &train_labels[0], width, height) != train_size)
+        return 2;
+    if (ReadUByteDataset(FLAGS_test_images.c_str(), FLAGS_test_labels.c_str(), &test_images[0], &test_labels[0], width, height) != test_size)
+        return 3;
 
-    // printf("Done. Training dataset size: %d, Test dataset size: %d\n", (int)train_size, (int)test_size);
-    // printf("Batch size: %lld, iterations: %d\n", FLAGS_batch_size, FLAGS_iterations);
+    printf("Done. Training dataset size: %d, Test dataset size: %d\n", (int)train_size, (int)test_size);
+    printf("Batch size: %lld, iterations: %d\n", FLAGS_batch_size, FLAGS_iterations);
 
     // This code snippet saves a random image and its label
     /*
@@ -833,9 +833,9 @@ int main(int argc, char **argv)
     //                         Buffer    | Element       | N                   | C                  | H                                 | W
     //-----------------------------------------------------------------------------------------------------------------------------------------
     std::cout << "context.m_batchSize " << context.m_batchSize << " channels " << channels << " height " << height << " width " << width << std::endl;
-    // hardcode height and wdith for now, to save having to load mnist data each time
-    height = 28;
-    width = 28;
+    // // hardcode height and wdith for now, to save having to load mnist data each time
+    // height = 28;
+    // width = 28;
     checkCudaErrors(cudaMalloc(&d_data,    sizeof(float) * context.m_batchSize * channels           * height                            * width));
     checkCudaErrors(cudaMalloc(&d_labels,  sizeof(float) * context.m_batchSize * 1                  * 1                                 * 1));
     checkCudaErrors(cudaMalloc(&d_conv1,   sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                  * conv1.out_width));
@@ -907,7 +907,6 @@ int main(int argc, char **argv)
     
     // Fill one-vector with ones
     FillOnes<<<RoundUp(context.m_batchSize, BW), BW>>>(d_onevec, context.m_batchSize);
-    /*
 
     printf("Preparing dataset\n");
     
@@ -915,6 +914,7 @@ int main(int argc, char **argv)
     std::vector<float> train_images_float(train_images.size()), train_labels_float(train_size);
     for (size_t i = 0; i < train_size * channels * width * height; ++i)
         train_images_float[i] = (float)train_images[i] / 255.0f;
+    /*
     
     for (size_t i = 0; i < train_size; ++i)
         train_labels_float[i] = (float)train_labels[i];
