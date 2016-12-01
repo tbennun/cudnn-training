@@ -922,7 +922,6 @@ int main(int argc, char **argv)
 
     // Use SGD to train the network
     checkCudaErrors(cudaDeviceSynchronize());
-    /*
     auto t1 = std::chrono::high_resolution_clock::now();
     for (int iter = 0; iter < FLAGS_iterations; ++iter)
     {
@@ -934,7 +933,7 @@ int main(int argc, char **argv)
                                         sizeof(float) * context.m_batchSize * channels * width * height, cudaMemcpyHostToDevice));
         checkCudaErrors(cudaMemcpyAsync(d_labels, &train_labels_float[imageid * context.m_batchSize],
                                         sizeof(float) * context.m_batchSize, cudaMemcpyHostToDevice));
-        
+/*        
         // Forward propagation
         context.ForwardPropagation(d_data, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax, 
                                    d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
@@ -954,7 +953,9 @@ int main(int argc, char **argv)
         context.UpdateWeights(learningRate, conv1, conv2,
                               d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                               d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias);
+    */
     }
+    /*
     checkCudaErrors(cudaDeviceSynchronize());
     auto t2 = std::chrono::high_resolution_clock::now();
 
