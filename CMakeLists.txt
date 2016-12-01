@@ -1,6 +1,10 @@
 cmake_minimum_required (VERSION 2.6)
 project (cudnn-training)
 
+option(USE_CUDA "Build for CUDA platform" ON)
+option(USE_OPENCL "Build for OpenCL 1.2 platform" OFF)
+
+if(USE_CUDA)
 find_package(CUDA 6.5 REQUIRED)
 
 # Uncomment the following line to use gflags
@@ -33,5 +37,14 @@ if(USE_GFLAGS)
 else()
   target_link_libraries(trainlenet cudnn)
 endif()
+else(USE_CUDA)
+unset(CUDA_HOST_COMPILER CACHE)
+unset(CUDA_TOOLKIT_ROOT_DIR CACHE)
+endif(USE_CUDA)
 
-
+if(USE_OPENCL)
+option(INDEXES_32BIT "Needed on beignet 1.2.1, hd5500, I think" ON)
+set(CLANG_HOME "/usr/lib/llvm-3.8" CACHE STRING "the clang-3.8.0 folder, containing lib, bin etc")
+include(/usr/local/share/cocl/cocl.cmake)
+add_cocl_executable(lenet lenet.cu readubyte.cpp)
+endif()

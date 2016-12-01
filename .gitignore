@@ -38,3 +38,5 @@ x64/
 Win32/
 *-ubyte
 *.pdb
+
+/build/
