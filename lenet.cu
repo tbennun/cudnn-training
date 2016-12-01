@@ -846,7 +846,6 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMalloc(&d_fc1relu, sizeof(float) * context.m_batchSize * fc1.outputs));
     checkCudaErrors(cudaMalloc(&d_fc2,     sizeof(float) * context.m_batchSize * fc2.outputs));
     checkCudaErrors(cudaMalloc(&d_fc2smax, sizeof(float) * context.m_batchSize * fc2.outputs));    
-    /*
 
     // Network parameters
     float *d_pconv1, *d_pconv1bias, *d_pconv2, *d_pconv2bias;
@@ -908,6 +907,7 @@ int main(int argc, char **argv)
     
     // Fill one-vector with ones
     FillOnes<<<RoundUp(context.m_batchSize, BW), BW>>>(d_onevec, context.m_batchSize);
+    /*
 
     printf("Preparing dataset\n");
     
