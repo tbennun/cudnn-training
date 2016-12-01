@@ -334,7 +334,6 @@ struct TrainingContext
         checkCUDNN(cudnnCreateConvolutionDescriptor(&conv2Desc));
 
         checkCUDNN(cudnnCreatePoolingDescriptor(&poolDesc));            
-/*
 
         
         // Set tensor descriptor sizes
@@ -343,6 +342,7 @@ struct TrainingContext
                                               CUDNN_DATA_FLOAT,
                                               1, conv1.out_channels,
                                               1, 1));
+/*
         checkCUDNN(cudnnSetTensor4dDescriptor(conv2BiasTensor,
                                               CUDNN_TENSOR_NCHW,
                                               CUDNN_DATA_FLOAT,
