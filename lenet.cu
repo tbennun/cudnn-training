@@ -314,7 +314,6 @@ struct TrainingContext
         checkCudaErrors(cublasCreate(&cublasHandle));
         checkCUDNN(cudnnCreate(&cudnnHandle));
         std::cout << "cudnnHandle " << (void*)cudnnHandle << std::endl;
-/*
         // Create tensor descriptors
         checkCUDNN(cudnnCreateTensorDescriptor(&dataTensor));
         checkCUDNN(cudnnCreateTensorDescriptor(&conv1Tensor));
@@ -335,6 +334,7 @@ struct TrainingContext
         checkCUDNN(cudnnCreateConvolutionDescriptor(&conv2Desc));
 
         checkCUDNN(cudnnCreatePoolingDescriptor(&poolDesc));            
+/*
 
         
         // Set tensor descriptor sizes
@@ -395,21 +395,21 @@ struct TrainingContext
 
         checkCudaErrors(cublasDestroy(cublasHandle));
         checkCUDNN(cudnnDestroy(cudnnHandle));
-        // checkCUDNN(cudnnDestroyTensorDescriptor(dataTensor));
-        // checkCUDNN(cudnnDestroyTensorDescriptor(conv1Tensor));
-        // checkCUDNN(cudnnDestroyTensorDescriptor(conv1BiasTensor));
-        // checkCUDNN(cudnnDestroyTensorDescriptor(pool1Tensor));
-        // checkCUDNN(cudnnDestroyTensorDescriptor(conv2Tensor));
-        // checkCUDNN(cudnnDestroyTensorDescriptor(conv2BiasTensor));
-        // checkCUDNN(cudnnDestroyTensorDescriptor(pool2Tensor));
-        // checkCUDNN(cudnnDestroyTensorDescriptor(fc1Tensor));
-        // checkCUDNN(cudnnDestroyTensorDescriptor(fc2Tensor));
-        // checkCUDNN(cudnnDestroyActivationDescriptor(fc1Activation));
-        // checkCUDNN(cudnnDestroyFilterDescriptor(conv1filterDesc));
-        // checkCUDNN(cudnnDestroyFilterDescriptor(conv2filterDesc));
-        // checkCUDNN(cudnnDestroyConvolutionDescriptor(conv1Desc));
-        // checkCUDNN(cudnnDestroyConvolutionDescriptor(conv2Desc));
-        // checkCUDNN(cudnnDestroyPoolingDescriptor(poolDesc));
+        checkCUDNN(cudnnDestroyTensorDescriptor(dataTensor));
+        checkCUDNN(cudnnDestroyTensorDescriptor(conv1Tensor));
+        checkCUDNN(cudnnDestroyTensorDescriptor(conv1BiasTensor));
+        checkCUDNN(cudnnDestroyTensorDescriptor(pool1Tensor));
+        checkCUDNN(cudnnDestroyTensorDescriptor(conv2Tensor));
+        checkCUDNN(cudnnDestroyTensorDescriptor(conv2BiasTensor));
+        checkCUDNN(cudnnDestroyTensorDescriptor(pool2Tensor));
+        checkCUDNN(cudnnDestroyTensorDescriptor(fc1Tensor));
+        checkCUDNN(cudnnDestroyTensorDescriptor(fc2Tensor));
+        checkCUDNN(cudnnDestroyActivationDescriptor(fc1Activation));
+        checkCUDNN(cudnnDestroyFilterDescriptor(conv1filterDesc));
+        checkCUDNN(cudnnDestroyFilterDescriptor(conv2filterDesc));
+        checkCUDNN(cudnnDestroyConvolutionDescriptor(conv1Desc));
+        checkCUDNN(cudnnDestroyConvolutionDescriptor(conv2Desc));
+        checkCUDNN(cudnnDestroyPoolingDescriptor(poolDesc));
     }
 
     size_t SetFwdConvolutionTensors(ConvBiasLayer& conv, cudnnTensorDescriptor_t& srcTensorDesc, cudnnTensorDescriptor_t& dstTensorDesc,
