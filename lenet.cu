@@ -394,7 +394,7 @@ struct TrainingContext
         // checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // checkCudaErrors(cublasDestroy(cublasHandle));
-        // checkCUDNN(cudnnDestroy(cudnnHandle));
+        checkCUDNN(cudnnDestroy(cudnnHandle));
         // checkCUDNN(cudnnDestroyTensorDescriptor(dataTensor));
         // checkCUDNN(cudnnDestroyTensorDescriptor(conv1Tensor));
         // checkCUDNN(cudnnDestroyTensorDescriptor(conv1BiasTensor));
