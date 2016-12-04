@@ -485,24 +485,24 @@ struct TrainingContext
                                            data, conv1filterDesc, pconv1, conv1Desc, 
                                            conv1algo, workspace, m_workspaceSize, &beta,
                                            conv1Tensor, conv1));
-        checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv1BiasTensor,
-                                  pconv1bias, &alpha, conv1Tensor, conv1));
+        // checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv1BiasTensor,
+        //                           pconv1bias, &alpha, conv1Tensor, conv1));
 
-        // Pool1 layer
-        checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha, conv1Tensor,
-                                       conv1, &beta, pool1Tensor, pool1));
+        // // Pool1 layer
+        // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha, conv1Tensor,
+        //                                conv1, &beta, pool1Tensor, pool1));
 
-        // Conv2 layer
+        // // Conv2 layer
         checkCUDNN(cudnnConvolutionForward(cudnnHandle, &alpha, pool1Tensor,
                                            pool1, conv2filterDesc, pconv2, conv2Desc, 
                                            conv2algo, workspace, m_workspaceSize, &beta,
                                            conv2Tensor, conv2));
-        checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv2BiasTensor,
-                                  pconv2bias, &alpha, conv2Tensor, conv2));
+        // checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv2BiasTensor,
+        //                           pconv2bias, &alpha, conv2Tensor, conv2));
 
-        // Pool2 layer
-        checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha, conv2Tensor,
-                                       conv2, &beta, pool2Tensor, pool2));
+        // // Pool2 layer
+        // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha, conv2Tensor,
+        //                                conv2, &beta, pool2Tensor, pool2));
 
         // FC1 layer
         // Forward propagate neurons using weights (fc1 = pfc1'*pool2)
@@ -522,9 +522,9 @@ struct TrainingContext
                                     &alpha,
                                     fc1, ref_fc1.outputs));
 
-        // ReLU activation
-        checkCUDNN(cudnnActivationForward(cudnnHandle, fc1Activation, &alpha,
-                                          fc1Tensor, fc1, &beta, fc1Tensor, fc1relu));
+        // // ReLU activation
+        // checkCUDNN(cudnnActivationForward(cudnnHandle, fc1Activation, &alpha,
+        //                                   fc1Tensor, fc1, &beta, fc1Tensor, fc1relu));
 
         // FC2 layer
         // Forward propagate neurons using weights (fc2 = pfc2'*fc1relu)
@@ -544,9 +544,9 @@ struct TrainingContext
                                     &alpha,
                                     fc2, ref_fc2.outputs));
 
-        // Softmax loss
-        checkCUDNN(cudnnSoftmaxForward(cudnnHandle, CUDNN_SOFTMAX_ACCURATE, CUDNN_SOFTMAX_MODE_CHANNEL,
-                                       &alpha, fc2Tensor, fc2, &beta, fc2Tensor, result));
+        // // Softmax loss
+        // checkCUDNN(cudnnSoftmaxForward(cudnnHandle, CUDNN_SOFTMAX_ACCURATE, CUDNN_SOFTMAX_MODE_CHANNEL,
+        //                                &alpha, fc2Tensor, fc2, &beta, fc2Tensor, result));
     }
 
     size_t SetBwdConvolutionTensors(cudnnTensorDescriptor_t& srcTensorDesc, cudnnTensorDescriptor_t& dstTensorDesc,
@@ -933,12 +933,12 @@ int main(int argc, char **argv)
                                         sizeof(float) * context.m_batchSize * channels * width * height, cudaMemcpyHostToDevice));
         checkCudaErrors(cudaMemcpyAsync(d_labels, &train_labels_float[imageid * context.m_batchSize],
                                         sizeof(float) * context.m_batchSize, cudaMemcpyHostToDevice));
-/*        
+        
         // Forward propagation
         context.ForwardPropagation(d_data, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax, 
                                    d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                                    d_cudnn_workspace, d_onevec);
-
+/*
         // Backward propagation
         context.Backpropagation(conv1, pool1, conv2, pool2,
                                 d_data, d_labels, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax, d_dlossdata,
