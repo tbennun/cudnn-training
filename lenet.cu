@@ -470,6 +470,12 @@ struct TrainingContext
         return sizeInBytes;
     }
 
+    // (dataTensor, data)
+    // conv1: =>[conv1filterDesc,pconv]=> (conv1Tensor, conv1)
+    // pool1: => (pool1Tensor, pool1)
+    // conv2: =>[conv2filterDesc, pconv2] => (conv2Tensor, conv2)
+    // pool2: => (pool2Tensor, pool2)
+    // fc1: =>[pfc1, pfc1bias]=> (fc1)
     void ForwardPropagation(float *data, float *conv1, float *pool1, float *conv2, float *pool2, float *fc1, float *fc1relu,
                             float *fc2, float *result,
                             float *pconv1, float *pconv1bias, 
@@ -481,38 +487,48 @@ struct TrainingContext
         checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // Conv1 layer
-        checkCUDNN(cudnnConvolutionForward(cudnnHandle, &alpha, dataTensor,
-                                           data, conv1filterDesc, pconv1, conv1Desc, 
-                                           conv1algo, workspace, m_workspaceSize, &beta,
-                                           conv1Tensor, conv1));
+        checkCUDNN(cudnnConvolutionForward(cudnnHandle, &alpha,
+                                           dataTensor, data,  // input
+                                           conv1filterDesc, pconv1,  // filters
+                                           conv1Desc,
+                                           conv1algo,
+                                           workspace, m_workspaceSize,
+                                           &beta,
+                                           conv1Tensor, conv1));  // output
         // checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv1BiasTensor,
         //                           pconv1bias, &alpha, conv1Tensor, conv1));
 
         // // Pool1 layer
-        // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha, conv1Tensor,
-        //                                conv1, &beta, pool1Tensor, pool1));
+        // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha,
+        //                                conv1Tensor, conv1,  // input to this layer
+        //                                &beta,
+        //                                pool1Tensor, pool1));  // output
 
         // // Conv2 layer
-        checkCUDNN(cudnnConvolutionForward(cudnnHandle, &alpha, pool1Tensor,
-                                           pool1, conv2filterDesc, pconv2, conv2Desc, 
+        checkCUDNN(cudnnConvolutionForward(cudnnHandle, &alpha,
+                                           pool1Tensor, pool1,  // input
+                                           conv2filterDesc, pconv2, // filters
+                                           conv2Desc,
                                            conv2algo, workspace, m_workspaceSize, &beta,
-                                           conv2Tensor, conv2));
+                                           conv2Tensor, conv2)); // output
         // checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv2BiasTensor,
         //                           pconv2bias, &alpha, conv2Tensor, conv2));
 
         // // Pool2 layer
-        // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha, conv2Tensor,
-        //                                conv2, &beta, pool2Tensor, pool2));
+        // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha,
+        //                                conv2Tensor, conv2, // input
+        //                                &beta,
+        //                                pool2Tensor, pool2)); // output
 
         // FC1 layer
         // Forward propagate neurons using weights (fc1 = pfc1'*pool2)
         checkCudaErrors(cublasSgemm(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N,
                                     ref_fc1.outputs, m_batchSize, ref_fc1.inputs,
                                     &alpha,
-                                    pfc1, ref_fc1.inputs,
-                                    pool2, ref_fc1.inputs,
+                                    pfc1, ref_fc1.inputs, // weights
+                                    pool2, ref_fc1.inputs, // input
                                     &beta,
-                                    fc1, ref_fc1.outputs));
+                                    fc1, ref_fc1.outputs)); // output
         // Add bias using GEMM's "beta" (fc1 += pfc1bias*1_vec')
         checkCudaErrors(cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N,
                                     ref_fc1.outputs, m_batchSize, 1,
@@ -643,37 +659,59 @@ struct TrainingContext
 
         // Pool2 layer
         checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
-                                        pool2Tensor, pool2, pool2Tensor, dfc1,
-                                        conv2Tensor, conv2, &beta, conv2Tensor, dpool2));
+                                        pool2Tensor, pool2, // output
+                                        pool2Tensor, dfc1,  // gradOuput
+                                        conv2Tensor, conv2, // input
+                                        &beta,
+                                        conv2Tensor, dpool2));  // gradInput
         
         // Conv2 layer
         checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv2Tensor,
                                                 dpool2, &beta, conv2BiasTensor, gconv2bias));
 
         
-        checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha, pool1Tensor,
-                                                  pool1, conv2Tensor, dpool2, conv2Desc,
+        checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha,
+                                                  pool1Tensor, pool1, // input
+                                                  conv2Tensor, dpool2, // gradOutput
+                                                  conv2Desc,
                                                   conv2bwfalgo, workspace, m_workspaceSize,
-                                                  &beta, conv2filterDesc, gconv2));
+                                                  &beta,
+                                                  conv2filterDesc, gconv2)); // gradFilters?
     
-        checkCUDNN(cudnnConvolutionBackwardData(cudnnHandle, &alpha, conv2filterDesc,
-                                                pconv2, conv2Tensor, dpool2, conv2Desc, 
+        checkCUDNN(cudnnConvolutionBackwardData(cudnnHandle, &alpha,
+                                                conv2filterDesc, pconv2, // filters
+                                                conv2Tensor, dpool2, // gradOutput
+                                                conv2Desc,
                                                 conv2bwdalgo, workspace, m_workspaceSize,
-                                                &beta, pool1Tensor, dconv2));
+                                                &beta,
+                                                pool1Tensor, dconv2)); // gradInput
         
         // Pool1 layer
         checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
-                                        pool1Tensor, pool1, pool1Tensor, dconv2,
-                                        conv1Tensor, conv1, &beta, conv1Tensor, dpool1));
+                                        pool1Tensor, pool1,  // output
+                                        pool1Tensor, dconv2,  // gradOutput
+                                        conv1Tensor, conv1, // input
+                                        &beta,
+                                        conv1Tensor, dpool1));  // gradInput
         
         // Conv1 layer
         checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv1Tensor,
                                                 dpool1, &beta, conv1BiasTensor, gconv1bias));
         
-        checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha, dataTensor,
-                                                  data, conv1Tensor, dpool1, conv1Desc,
+        checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha,
+                                                  dataTensor, data, // input
+                                                  conv1Tensor, dpool1, // gradOutput
+                                                  conv1Desc,
                                                   conv1bwfalgo, workspace, m_workspaceSize,
-                                                  &beta, conv1filterDesc, gconv1));
+                                                  &beta,
+                                                  conv1filterDesc, gconv1));
+
+    // from forward direction notes:
+    // conv1: (dataTensor, data) =>[conv1filterDesc,pconv]=> (conv1Tensor, conv1)
+    // pool1: (conv1Tensor, conv1) => (pool1Tensor, pool1)
+    // conv2: (pool1Tensor, pool1) =>[conv2filterDesc, pconv2] => (conv2Tensor, conv2)
+    // pool2: (conv2Tensor, conv2) => (pool2Tensor, pool2)
+    // fc1: (pool2Tensor, pool2) =>[pfc1, pfc1bias]=> (fc1)
 
         // No need for convBackwardData because there are no more layers below
     }
@@ -938,13 +976,13 @@ int main(int argc, char **argv)
         context.ForwardPropagation(d_data, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax, 
                                    d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                                    d_cudnn_workspace, d_onevec);
-/*
         // Backward propagation
         context.Backpropagation(conv1, pool1, conv2, pool2,
                                 d_data, d_labels, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax, d_dlossdata,
                                 d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                                 d_gconv1, d_gconv1bias, d_dpool1, d_gconv2, d_gconv2bias, d_dconv2, d_dpool2, d_gfc1, d_gfc1bias, 
                                 d_dfc1, d_dfc1relu, d_gfc2, d_gfc2bias, d_dfc2, d_cudnn_workspace, d_onevec);
+/*
 
         // Compute learning rate
         float learningRate = static_cast<float>(FLAGS_learning_rate * pow((1.0 + FLAGS_lr_gamma * iter), (-FLAGS_lr_power)));
