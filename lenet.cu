@@ -710,7 +710,7 @@ struct TrainingContext
                                                   conv1Desc,
                                                   conv1bwfalgo, workspace, m_workspaceSize,
                                                   &beta,
-                                                  conv1filterDesc, gconv1));
+                                                  conv1filterDesc, gconv1));  // gradFilter?
 
     // from forward direction notes:
     // conv1: (dataTensor, data) =>[conv1filterDesc,pconv]=> (conv1Tensor, conv1)
