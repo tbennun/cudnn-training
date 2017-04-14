@@ -648,9 +648,9 @@ struct TrainingContext
                                     &alpha, pfc2, ref_fc2.inputs, dloss_data, ref_fc2.outputs, &beta, dfc2, ref_fc2.inputs));
         
         // ReLU activation
-        checkCUDNN(cudnnActivationBackward(cudnnHandle, fc1Activation, &alpha,
-                                           fc1Tensor, fc1relu, fc1Tensor, dfc2,
-                                           fc1Tensor, fc1, &beta, fc1Tensor, dfc1relu));
+        // checkCUDNN(cudnnActivationBackward(cudnnHandle, fc1Activation, &alpha,
+        //                                    fc1Tensor, fc1relu, fc1Tensor, dfc2,
+        //                                    fc1Tensor, fc1, &beta, fc1Tensor, dfc1relu));
 
         // FC1 layer
         // Compute derivative with respect to weights: gfc1 = (pool2 * dfc1relu')
