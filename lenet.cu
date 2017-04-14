@@ -498,8 +498,8 @@ struct TrainingContext
                                            workspace, m_workspaceSize,
                                            &beta,
                                            conv1Tensor, conv1));  // output
-        // checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv1BiasTensor,
-        //                           pconv1bias, &alpha, conv1Tensor, conv1));
+        checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv1BiasTensor,
+                                  pconv1bias, &alpha, conv1Tensor, conv1));
 
         // // Pool1 layer
         // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha,
@@ -514,8 +514,8 @@ struct TrainingContext
                                            conv2Desc,
                                            conv2algo, workspace, m_workspaceSize, &beta,
                                            conv2Tensor, conv2)); // output
-        // checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv2BiasTensor,
-        //                           pconv2bias, &alpha, conv2Tensor, conv2));
+        checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv2BiasTensor,
+                                  pconv2bias, &alpha, conv2Tensor, conv2));
 
         // // Pool2 layer
         // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha,
