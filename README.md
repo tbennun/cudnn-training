@@ -11,3 +11,21 @@ Notes on this fork:
   - activation forward/backward
   - pooling forward/backward
   - convolution bias backprop
+
+## To build
+
+- First, make sure you have installed the latest https://github.com/hughperkins/cuda-on-cl
+- Then do:
+```
+git clone https://github.com/hughperkins/cudnn-training
+cd cudnn-training
+mkdir build
+cd build
+ccmake ..
+# select 'opencl', deselect 'cuda'
+# select path to llvm-3.8 (eg `/usr/lib/llvm-3.8` on ubuntu)
+# set INDEXES_32BIT to 'ON'
+# press 'c' then 'g'
+make
+./lenet
+```
