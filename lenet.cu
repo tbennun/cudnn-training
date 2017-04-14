@@ -664,12 +664,12 @@ struct TrainingContext
                                     &alpha, pfc1, ref_fc1.inputs, dfc1relu, ref_fc1.outputs, &beta, dfc1, ref_fc1.inputs));
 
         // Pool2 layer
-        checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
-                                        pool2Tensor, pool2, // output
-                                        pool2Tensor, dfc1,  // gradOuput
-                                        conv2Tensor, conv2, // input
-                                        &beta,
-                                        conv2Tensor, dpool2));  // gradInput
+        // checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
+        //                                 pool2Tensor, pool2, // output
+        //                                 pool2Tensor, dfc1,  // gradOuput
+        //                                 conv2Tensor, conv2, // input
+        //                                 &beta,
+        //                                 conv2Tensor, dpool2));  // gradInput
         
         // Conv2 layer
         checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv2Tensor,
@@ -693,12 +693,12 @@ struct TrainingContext
                                                 pool1Tensor, dconv2)); // gradInput
         
         // Pool1 layer
-        checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
-                                        pool1Tensor, pool1,  // output
-                                        pool1Tensor, dconv2,  // gradOutput
-                                        conv1Tensor, conv1, // input
-                                        &beta,
-                                        conv1Tensor, dpool1));  // gradInput
+        // checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
+        //                                 pool1Tensor, pool1,  // output
+        //                                 pool1Tensor, dconv2,  // gradOutput
+        //                                 conv1Tensor, conv1, // input
+        //                                 &beta,
+        //                                 conv1Tensor, dpool1));  // gradInput
         
         // Conv1 layer
         checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv1Tensor,
