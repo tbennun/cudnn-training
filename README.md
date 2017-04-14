@@ -5,12 +5,11 @@ Original readme: https://github.com/tbennun/cudnn-training
 Notes on this fork:
 - work in progress to build using [cuda-on-cl](https://github.com/hughperkins/cuda-on-cl)
 - what's working:
-  - cublas calls: SGEMM, SGEMV
-  - forward convolution, backward data, backward filter
+  - cublas calls: SGEMM, SGEMV, SAXPY, SSCAL
+  - forward/backward convolution
 - things that arent implemented yet:
   - activation forward/backward
   - pooling forward/backward
-  - convolution bias backprop
 
 ## To build
 
