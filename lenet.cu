@@ -310,7 +310,7 @@ struct TrainingContext
         m_batchSize = batch_size;
         std::cout << "TrainingContext constructor" << std::endl;
         // Create CUBLAS and CUDNN handles
-        checkCudaErrors(cudaSetDevice(gpuid));
+        // checkCudaErrors(cudaSetDevice(gpuid));
         checkCudaErrors(cublasCreate(&cublasHandle));
         checkCUDNN(cudnnCreate(&cudnnHandle));
         std::cout << "cudnnHandle " << (void*)cudnnHandle << std::endl;
@@ -371,7 +371,8 @@ struct TrainingContext
                                               CUDNN_DATA_FLOAT,
                                               batch_size, fc2.outputs, 1, 1));
 
-        checkCUDNN(cudnnSetActivationDescriptor(fc1Activation, CUDNN_ACTIVATION_RELU,
+        checkCUDNN(cudnnSetActivationDescriptor(fc1Activation,
+                                                CUDNN_ACTIVATION_RELU,
                                                 CUDNN_PROPAGATE_NAN, 0.0));
 
         // Set convolution tensor sizes and compute workspace size
@@ -487,7 +488,7 @@ struct TrainingContext
                             float *pfc2, float *pfc2bias, void *workspace, float *onevec)
     {        
         float alpha = 1.0f, beta = 0.0f;
-        checkCudaErrors(cudaSetDevice(m_gpuid));
+        // checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // Conv1 layer
         checkCUDNN(cudnnConvolutionForward(cudnnHandle, &alpha,
@@ -542,8 +543,8 @@ struct TrainingContext
                                     fc1, ref_fc1.outputs));
 
         // // ReLU activation
-        // checkCUDNN(cudnnActivationForward(cudnnHandle, fc1Activation, &alpha,
-        //                                   fc1Tensor, fc1, &beta, fc1Tensor, fc1relu));
+        checkCUDNN(cudnnActivationForward(cudnnHandle, fc1Activation, &alpha,
+                                          fc1Tensor, fc1, &beta, fc1Tensor, fc1relu));
 
         // FC2 layer
         // Forward propagate neurons using weights (fc2 = pfc2'*fc1relu)
@@ -625,7 +626,7 @@ struct TrainingContext
 
         float scalVal = 1.0f / static_cast<float>(m_batchSize);
 
-        checkCudaErrors(cudaSetDevice(m_gpuid));
+        // checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // Initialization (using the training error function)
         checkCudaErrors(cudaMemcpyAsync(dloss_data, fc2smax, sizeof(float) * m_batchSize * ref_fc2.outputs, cudaMemcpyDeviceToDevice));
@@ -649,8 +650,11 @@ struct TrainingContext
         
         // ReLU activation
         // checkCUDNN(cudnnActivationBackward(cudnnHandle, fc1Activation, &alpha,
-        //                                    fc1Tensor, fc1relu, fc1Tensor, dfc2,
-        //                                    fc1Tensor, fc1, &beta, fc1Tensor, dfc1relu));
+        //                                    fc1Tensor, fc1relu, // output
+        //                                    fc1Tensor, dfc2,    // gradoutput
+        //                                    fc1Tensor, fc1,     // input
+        //                                    &beta,
+        //                                    fc1Tensor, dfc1relu)); // gradInput
 
         // FC1 layer
         // Compute derivative with respect to weights: gfc1 = (pool2 * dfc1relu')
@@ -737,7 +741,7 @@ struct TrainingContext
     {    
         float alpha = -learning_rate;
 
-        checkCudaErrors(cudaSetDevice(m_gpuid));
+        // checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // Conv1
         checkCudaErrors(cublasSaxpy(cublasHandle, static_cast<int>(conv1.pconv.size()),
