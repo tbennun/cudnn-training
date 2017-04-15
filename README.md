@@ -7,9 +7,10 @@ Notes on this fork:
 - what's working:
   - cublas calls: SGEMM, SGEMV, SAXPY, SSCAL
   - forward/backward convolution
-- things that arent implemented yet:
-  - activation forward/backward
+  - relu activation forward/backward
   - pooling forward/backward
+- things that arent implemented yet:
+  - softmax forward
 
 ## To build
 
