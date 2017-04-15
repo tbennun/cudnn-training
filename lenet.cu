@@ -501,13 +501,13 @@ struct TrainingContext
         checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv1BiasTensor,
                                   pconv1bias, &alpha, conv1Tensor, conv1));
 
-        // // Pool1 layer
-        // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha,
-        //                                conv1Tensor, conv1,  // input to this layer
-        //                                &beta,
-        //                                pool1Tensor, pool1));  // output
+        // Pool1 layer
+        checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha,
+                                       conv1Tensor, conv1,  // input to this layer
+                                       &beta,
+                                       pool1Tensor, pool1));  // output
 
-        // // Conv2 layer
+        // Conv2 layer
         checkCUDNN(cudnnConvolutionForward(cudnnHandle, &alpha,
                                            pool1Tensor, pool1,  // input
                                            conv2filterDesc, pconv2, // filters
@@ -517,11 +517,11 @@ struct TrainingContext
         checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv2BiasTensor,
                                   pconv2bias, &alpha, conv2Tensor, conv2));
 
-        // // Pool2 layer
-        // checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha,
-        //                                conv2Tensor, conv2, // input
-        //                                &beta,
-        //                                pool2Tensor, pool2)); // output
+        // Pool2 layer
+        checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha,
+                                       conv2Tensor, conv2, // input
+                                       &beta,
+                                       pool2Tensor, pool2)); // output
 
         // FC1 layer
         // Forward propagate neurons using weights (fc1 = pfc1'*pool2)
@@ -664,16 +664,18 @@ struct TrainingContext
                                     &alpha, pfc1, ref_fc1.inputs, dfc1relu, ref_fc1.outputs, &beta, dfc1, ref_fc1.inputs));
 
         // Pool2 layer
-        // checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
-        //                                 pool2Tensor, pool2, // output
-        //                                 pool2Tensor, dfc1,  // gradOuput
-        //                                 conv2Tensor, conv2, // input
-        //                                 &beta,
-        //                                 conv2Tensor, dpool2));  // gradInput
+        checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
+                                        pool2Tensor, pool2, // output
+                                        pool2Tensor, dfc1,  // gradOuput
+                                        conv2Tensor, conv2, // input
+                                        &beta,
+                                        conv2Tensor, dpool2));  // gradInput
         
         // Conv2 layer
-        checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv2Tensor,
-                                                dpool2, &beta, conv2BiasTensor, gconv2bias));
+        checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha,
+                                                conv2Tensor, dpool2,   // gradOutput
+                                                &beta,
+                                                conv2BiasTensor, gconv2bias)); // gradFilter bias
 
         
         checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha,
@@ -693,12 +695,12 @@ struct TrainingContext
                                                 pool1Tensor, dconv2)); // gradInput
         
         // Pool1 layer
-        // checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
-        //                                 pool1Tensor, pool1,  // output
-        //                                 pool1Tensor, dconv2,  // gradOutput
-        //                                 conv1Tensor, conv1, // input
-        //                                 &beta,
-        //                                 conv1Tensor, dpool1));  // gradInput
+        checkCUDNN(cudnnPoolingBackward(cudnnHandle, poolDesc, &alpha, 
+                                        pool1Tensor, pool1,  // output
+                                        pool1Tensor, dconv2,  // gradOutput
+                                        conv1Tensor, conv1, // input
+                                        &beta,
+                                        conv1Tensor, dpool1));  // gradInput
         
         // Conv1 layer
         checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv1Tensor,
@@ -969,6 +971,8 @@ int main(int argc, char **argv)
     auto t1 = std::chrono::high_resolution_clock::now();
     for (int iter = 0; iter < FLAGS_iterations; ++iter)
     {
+        std::cout << "iter " << iter << std::endl;
+
         // Train
         int imageid = iter % (train_size / context.m_batchSize);
 
