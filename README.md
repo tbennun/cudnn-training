@@ -9,8 +9,8 @@ Notes on this fork:
   - forward/backward convolution
   - relu activation forward/backward
   - pooling forward/backward
-- things that arent implemented yet:
   - softmax forward
+- things that arent implemented yet:
 
 ## To build
 

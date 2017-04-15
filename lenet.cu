@@ -476,7 +476,7 @@ struct TrainingContext
 
     // (dataTensor, data)
     // conv1: =>[conv1filterDesc,pconv]=> (conv1Tensor, conv1)
-    // pool1: => (pool1Tensor, pool1)
+        // pool1: => (pool1Tensor, pool1)
     // conv2: =>[conv2filterDesc, pconv2] => (conv2Tensor, conv2)
     // pool2: => (pool2Tensor, pool2)
     // fc1: =>[pfc1, pfc1bias]=> (fc1)
@@ -565,8 +565,11 @@ struct TrainingContext
                                     fc2, ref_fc2.outputs));
 
         // // Softmax loss
-        // checkCUDNN(cudnnSoftmaxForward(cudnnHandle, CUDNN_SOFTMAX_ACCURATE, CUDNN_SOFTMAX_MODE_CHANNEL,
-        //                                &alpha, fc2Tensor, fc2, &beta, fc2Tensor, result));
+        checkCUDNN(cudnnSoftmaxForward(cudnnHandle, CUDNN_SOFTMAX_ACCURATE, CUDNN_SOFTMAX_MODE_CHANNEL,
+                                       &alpha,
+                                       fc2Tensor, fc2,  // input
+                                       &beta,
+                                       fc2Tensor, result));  // output
     }
 
     // workspace = std::max(workspace, SetBwdConvolutionTensors(pool1Tensor, conv2Tensor, conv2filterDesc, conv2Desc, &conv2bwfalgo, &conv2bwdalgo));
@@ -649,12 +652,12 @@ struct TrainingContext
                                     &alpha, pfc2, ref_fc2.inputs, dloss_data, ref_fc2.outputs, &beta, dfc2, ref_fc2.inputs));
         
         // ReLU activation
-        // checkCUDNN(cudnnActivationBackward(cudnnHandle, fc1Activation, &alpha,
-        //                                    fc1Tensor, fc1relu, // output
-        //                                    fc1Tensor, dfc2,    // gradoutput
-        //                                    fc1Tensor, fc1,     // input
-        //                                    &beta,
-        //                                    fc1Tensor, dfc1relu)); // gradInput
+        checkCUDNN(cudnnActivationBackward(cudnnHandle, fc1Activation, &alpha,
+                                           fc1Tensor, fc1relu, // output
+                                           fc1Tensor, dfc2,    // gradoutput
+                                           fc1Tensor, fc1,     // input
+                                           &beta,
+                                           fc1Tensor, dfc1relu)); // gradInput
 
         // FC1 layer
         // Compute derivative with respect to weights: gfc1 = (pool2 * dfc1relu')
