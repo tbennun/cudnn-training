@@ -1008,7 +1008,7 @@ int main(int argc, char **argv)
                               d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                               d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias);
     }
-    /*
+
     checkCudaErrors(cudaDeviceSynchronize());
     auto t2 = std::chrono::high_resolution_clock::now();
 
@@ -1068,8 +1068,7 @@ int main(int argc, char **argv)
 
         printf("Classification result: %.2f%% error (used %d images)\n", classification_error * 100.0f, (int)classifications);
     }
-*/
-        
+
     // Free data structures
     checkCudaErrors(cudaFree(d_data));
     checkCudaErrors(cudaFree(d_conv1));
