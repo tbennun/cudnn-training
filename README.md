@@ -36,3 +36,14 @@ Running
 Extract the MNIST training and test set files (*-ubyte) to a directory (if gflags are not used, the default is the current path).
 
 You can also use the pre-trained weights published along with CUDNN, using the "pretrained" flag.
+
+OpenCL
+======
+
+Building lenet using [cuda-on-cl](https://github.com/hughperkins/cuda-on-cl) is possible, although quite beta, and not very speedy. Please address any questions or issues to [https://github.com/hughperkins/cuda-on-cl/issues](cuda-on-cl issues).
+
+To build for OpenCL:
+- first, install cuda-on-cl, see https://github.com/hughperkins/cuda-on-cl#how-to-build
+- in the cudnn cmake configuration screen:
+  - set `USE_CUDA` to `OFF`, and `USE_CUDA` to `ON`
+  - point `CLANG_HOME` at llvm-3.8 directory, eg `/usr/lib/llvm-3.8`, on Ubuntu 16.04
