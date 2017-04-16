@@ -45,5 +45,5 @@ Building lenet using [cuda-on-cl](https://github.com/hughperkins/cuda-on-cl) is 
 To build for OpenCL:
 - first, install cuda-on-cl, see https://github.com/hughperkins/cuda-on-cl#how-to-build
 - in the cudnn cmake configuration screen:
-  - set `USE_CUDA` to `OFF`, and `USE_CUDA` to `ON`
+  - set `USE_CUDA` to `OFF`, and `USE_OPENCL` to `ON`
   - point `CLANG_HOME` at llvm-3.8 directory, eg `/usr/lib/llvm-3.8`, on Ubuntu 16.04
