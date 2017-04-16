@@ -310,7 +310,7 @@ struct TrainingContext
         m_batchSize = batch_size;
         std::cout << "TrainingContext constructor" << std::endl;
         // Create CUBLAS and CUDNN handles
-        // checkCudaErrors(cudaSetDevice(gpuid));
+        checkCudaErrors(cudaSetDevice(gpuid));
         checkCudaErrors(cublasCreate(&cublasHandle));
         checkCUDNN(cudnnCreate(&cudnnHandle));
         std::cout << "cudnnHandle " << (void*)cudnnHandle << std::endl;
@@ -389,7 +389,7 @@ struct TrainingContext
 
     ~TrainingContext()
     {
-        // checkCudaErrors(cudaSetDevice(m_gpuid));
+        checkCudaErrors(cudaSetDevice(m_gpuid));
 
         checkCudaErrors(cublasDestroy(cublasHandle));
         checkCUDNN(cudnnDestroy(cudnnHandle));
@@ -488,7 +488,7 @@ struct TrainingContext
                             float *pfc2, float *pfc2bias, void *workspace, float *onevec)
     {        
         float alpha = 1.0f, beta = 0.0f;
-        // checkCudaErrors(cudaSetDevice(m_gpuid));
+        checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // Conv1 layer
         checkCUDNN(cudnnConvolutionForward(cudnnHandle, &alpha,
@@ -629,7 +629,7 @@ struct TrainingContext
 
         float scalVal = 1.0f / static_cast<float>(m_batchSize);
 
-        // checkCudaErrors(cudaSetDevice(m_gpuid));
+        checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // Initialization (using the training error function)
         checkCudaErrors(cudaMemcpyAsync(dloss_data, fc2smax, sizeof(float) * m_batchSize * ref_fc2.outputs, cudaMemcpyDeviceToDevice));
@@ -744,7 +744,7 @@ struct TrainingContext
     {    
         float alpha = -learning_rate;
 
-        // checkCudaErrors(cudaSetDevice(m_gpuid));
+        checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // Conv1
         checkCudaErrors(cublasSaxpy(cublasHandle, static_cast<int>(conv1.pconv.size()),
