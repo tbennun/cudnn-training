@@ -122,8 +122,8 @@ DEFINE_int32(classify, -1, "Number of images to classify to compute error rate (
 DEFINE_uint64(batch_size, 64, "Batch size for training");
 
 // Filenames
-DEFINE_bool(pretrained, true, "Use the pretrained CUDNN model as input");
-DEFINE_bool(save_data, true, "Save pretrained weights to file");
+DEFINE_bool(pretrained, false, "Use the pretrained CUDNN model as input");
+DEFINE_bool(save_data, false, "Save pretrained weights to file");
 DEFINE_string(train_images, "train-images-idx3-ubyte", "Training images filename");
 DEFINE_string(train_labels, "train-labels-idx1-ubyte", "Training labels filename");
 DEFINE_string(test_images, "t10k-images-idx3-ubyte", "Test images filename");
@@ -1007,7 +1007,6 @@ int main(int argc, char **argv)
                               d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                               d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias);
 
-        printf("iter %9d\r", iter);
     }
     checkCudaErrors(cudaDeviceSynchronize());
     auto t2 = std::chrono::high_resolution_clock::now();
@@ -1016,7 +1015,7 @@ int main(int argc, char **argv)
     
     if (FLAGS_save_data)
     {
-      // from trained GPU weights to CPU for savings...
+      // Copy trained weights from GPU to CPU
       checkCudaErrors(cudaMemcpy(&conv1.pconv[0], d_pconv1, sizeof(float) * conv1.pconv.size(), cudaMemcpyDeviceToHost));
       checkCudaErrors(cudaMemcpy(&conv1.pbias[0], d_pconv1bias, sizeof(float) * conv1.pbias.size(), cudaMemcpyDeviceToHost));
       checkCudaErrors(cudaMemcpy(&conv2.pconv[0], d_pconv2, sizeof(float) * conv2.pconv.size(), cudaMemcpyDeviceToHost));
@@ -1025,8 +1024,8 @@ int main(int argc, char **argv)
       checkCudaErrors(cudaMemcpy(&fc1.pbias[0], d_pfc1bias, sizeof(float) * fc1.pbias.size(), cudaMemcpyDeviceToHost));
       checkCudaErrors(cudaMemcpy(&fc2.pneurons[0], d_pfc2, sizeof(float) * fc2.pneurons.size(), cudaMemcpyDeviceToHost));
       checkCudaErrors(cudaMemcpy(&fc2.pbias[0], d_pfc2bias, sizeof(float) * fc2.pbias.size(), cudaMemcpyDeviceToHost));
-      // now save data
-      printf("Save data to file\n");
+      // Now save data
+      printf("Saving data to file\n");
       conv1.ToFile("conv1");
       conv2.ToFile("conv2");
       fc1.ToFile("ip1");
@@ -1123,7 +1122,6 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_onevec));
     if (d_cudnn_workspace != nullptr)
         checkCudaErrors(cudaFree(d_cudnn_workspace));
-
-    getchar();
+    
     return 0;
 }
