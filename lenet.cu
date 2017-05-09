@@ -123,6 +123,7 @@ DEFINE_uint64(batch_size, 64, "Batch size for training");
 
 // Filenames
 DEFINE_bool(pretrained, false, "Use the pretrained CUDNN model as input");
+DEFINE_bool(save_data, false, "Save pretrained weights to file");
 DEFINE_string(train_images, "train-images-idx3-ubyte", "Training images filename");
 DEFINE_string(train_labels, "train-labels-idx1-ubyte", "Training labels filename");
 DEFINE_string(test_images, "t10k-images-idx3-ubyte", "Test images filename");
@@ -160,7 +161,7 @@ struct ConvBiasLayer
         out_height = in_h_ - kernel_size_ + 1;
     }
 
-    void FromFile(const char *fileprefix)
+    bool FromFile(const char *fileprefix)
     {
         std::stringstream ssf, ssbf;
         ssf << fileprefix << ".bin";
@@ -171,7 +172,7 @@ struct ConvBiasLayer
         if (!fp)
         {
             printf("ERROR: Cannot open file %s\n", ssf.str().c_str());
-            exit(2);
+            return false;
         }
         fread(&pconv[0], sizeof(float), in_channels * out_channels * kernel_size * kernel_size, fp);
         fclose(fp);
@@ -181,10 +182,37 @@ struct ConvBiasLayer
         if (!fp)
         {
             printf("ERROR: Cannot open file %s\n", ssbf.str().c_str());
-            exit(2);
+            return false;
         }
         fread(&pbias[0], sizeof(float), out_channels, fp);
         fclose(fp);
+        return true;
+    }
+    void ToFile(const char *fileprefix)
+    {
+      std::stringstream ssf, ssbf;
+      ssf << fileprefix << ".bin";
+      ssbf << fileprefix << ".bias.bin";
+
+      // Read weights file
+      FILE *fp = fopen(ssf.str().c_str(), "wb");
+      if (!fp)
+      {
+        printf("ERROR: Cannot open file %s\n", ssf.str().c_str());
+        exit(2);
+      }
+      fwrite(&pconv[0], sizeof(float), in_channels * out_channels * kernel_size * kernel_size, fp);
+      fclose(fp);
+
+      // Read bias file
+      fp = fopen(ssbf.str().c_str(), "wb");
+      if (!fp)
+      {
+        printf("ERROR: Cannot open file %s\n", ssbf.str().c_str());
+        exit(2);
+      }
+      fwrite(&pbias[0], sizeof(float), out_channels, fp);
+      fclose(fp);
     }
 };
 
@@ -208,7 +236,7 @@ struct FullyConnectedLayer
     FullyConnectedLayer(int inputs_, int outputs_) : outputs(outputs_), inputs(inputs_),
         pneurons(inputs_ * outputs_), pbias(outputs_) {}
 
-    void FromFile(const char *fileprefix)
+    bool FromFile(const char *fileprefix)
     {
         std::stringstream ssf, ssbf;
         ssf << fileprefix << ".bin";
@@ -219,7 +247,7 @@ struct FullyConnectedLayer
         if (!fp)
         {
             printf("ERROR: Cannot open file %s\n", ssf.str().c_str());
-            exit(2);
+            return false;
         }
         fread(&pneurons[0], sizeof(float), inputs * outputs, fp);
         fclose(fp);
@@ -229,10 +257,37 @@ struct FullyConnectedLayer
         if (!fp)
         {
             printf("ERROR: Cannot open file %s\n", ssbf.str().c_str());
-            exit(2);
+            return false;
         }
         fread(&pbias[0], sizeof(float), outputs, fp);
         fclose(fp);
+        return true;
+    }
+    void ToFile(const char *fileprefix)
+    {
+      std::stringstream ssf, ssbf;
+      ssf << fileprefix << ".bin";
+      ssbf << fileprefix << ".bias.bin";
+
+      // Read weights file
+      FILE *fp = fopen(ssf.str().c_str(), "wb");
+      if (!fp)
+      {
+        printf("ERROR: Cannot open file %s\n", ssf.str().c_str());
+        exit(2);
+      }
+      fwrite(&pneurons[0], sizeof(float), inputs * outputs, fp);
+      fclose(fp);
+
+      // Read bias file
+      fp = fopen(ssbf.str().c_str(), "wb");
+      if (!fp)
+      {
+        printf("ERROR: Cannot open file %s\n", ssbf.str().c_str());
+        exit(2);
+      }
+      fwrite(&pbias[0], sizeof(float), outputs, fp);
+      fclose(fp);
     }
 };
 
@@ -794,14 +849,15 @@ int main(int argc, char **argv)
     TrainingContext context(FLAGS_gpu, FLAGS_batch_size, conv1, pool1, conv2, pool2, fc1, fc2);
     
     // Determine initial network structure
+    bool bRet = true;
     if (FLAGS_pretrained)
     {
-        conv1.FromFile("conv1");
-        conv2.FromFile("conv2");
-        fc1.FromFile("ip1");
-        fc2.FromFile("ip2");
+      bRet = conv1.FromFile("conv1");
+      bRet &= conv2.FromFile("conv2");
+      bRet &= fc1.FromFile("ip1");
+      bRet &= fc2.FromFile("ip2");
     }
-    else
+    if (!bRet || !FLAGS_pretrained)
     {
         // Create random network
         std::random_device rd;
@@ -960,12 +1016,33 @@ int main(int argc, char **argv)
         context.UpdateWeights(learningRate, conv1, conv2,
                               d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                               d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias);
+
     }
     checkCudaErrors(cudaDeviceSynchronize());
     auto t2 = std::chrono::high_resolution_clock::now();
 
     printf("Iteration time: %f ms\n", std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count() / 1000.0f / FLAGS_iterations);
     
+    if (FLAGS_save_data)
+    {
+      // Copy trained weights from GPU to CPU
+      checkCudaErrors(cudaMemcpy(&conv1.pconv[0], d_pconv1, sizeof(float) * conv1.pconv.size(), cudaMemcpyDeviceToHost));
+      checkCudaErrors(cudaMemcpy(&conv1.pbias[0], d_pconv1bias, sizeof(float) * conv1.pbias.size(), cudaMemcpyDeviceToHost));
+      checkCudaErrors(cudaMemcpy(&conv2.pconv[0], d_pconv2, sizeof(float) * conv2.pconv.size(), cudaMemcpyDeviceToHost));
+      checkCudaErrors(cudaMemcpy(&conv2.pbias[0], d_pconv2bias, sizeof(float) * conv2.pbias.size(), cudaMemcpyDeviceToHost));
+      checkCudaErrors(cudaMemcpy(&fc1.pneurons[0], d_pfc1, sizeof(float) * fc1.pneurons.size(), cudaMemcpyDeviceToHost));
+      checkCudaErrors(cudaMemcpy(&fc1.pbias[0], d_pfc1bias, sizeof(float) * fc1.pbias.size(), cudaMemcpyDeviceToHost));
+      checkCudaErrors(cudaMemcpy(&fc2.pneurons[0], d_pfc2, sizeof(float) * fc2.pneurons.size(), cudaMemcpyDeviceToHost));
+      checkCudaErrors(cudaMemcpy(&fc2.pbias[0], d_pfc2bias, sizeof(float) * fc2.pbias.size(), cudaMemcpyDeviceToHost));
+      // Now save data
+      printf("Saving data to file\n");
+      conv1.ToFile("conv1");
+      conv2.ToFile("conv2");
+      fc1.ToFile("ip1");
+      fc2.ToFile("ip2");
+    }
+    
+
     float classification_error = 1.0f;
 
     int classifications = FLAGS_classify;
@@ -1055,6 +1132,6 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_onevec));
     if (d_cudnn_workspace != nullptr)
         checkCudaErrors(cudaFree(d_cudnn_workspace));
-
+    
     return 0;
 }
