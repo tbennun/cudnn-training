@@ -5,7 +5,7 @@ Prerequisites
 
 * C++11 capable compiler (Visual Studio 2013, GCC 4.9 etc.) (for chrono and random)
 * CUDA (6.5 or newer): https://developer.nvidia.com/cuda-downloads
-* CUDNN (v5 or newer): https://developer.nvidia.com/cuDNN/
+* CUDNN (v5, v6): https://developer.nvidia.com/cuDNN/
 * MNIST dataset: http://yann.lecun.com/exdb/mnist/
 * (optional) gflags: https://github.com/gflags/gflags
 
