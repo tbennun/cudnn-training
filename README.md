@@ -35,4 +35,4 @@ Running
 
 Extract the MNIST training and test set files (*-ubyte) to a directory (if gflags are not used, the default is the current path).
 
-You can also use the pre-trained weights published along with CUDNN, using the "pretrained" flag.
+You can also load and save pre-trained weights (e.g., published along with CUDNN), using the "pretrained" and "save_data" flags respectively.
