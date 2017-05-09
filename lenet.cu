@@ -434,12 +434,22 @@ struct TrainingContext
                                               conv.in_channels, 
                                               conv.kernel_size,
                                               conv.kernel_size));
- 
+
+#if CUDNN_MAJOR > 5
+        checkCUDNN(cudnnSetConvolution2dDescriptor(convDesc,
+                                                   0, 0,
+                                                   1, 1,
+                                                   1, 1,
+                                                   CUDNN_CROSS_CORRELATION,
+                                                   CUDNN_DATA_FLOAT));
+#else
         checkCUDNN(cudnnSetConvolution2dDescriptor(convDesc,
                                                    0, 0,
                                                    1, 1,
                                                    1, 1,
                                                    CUDNN_CROSS_CORRELATION));
+#endif
+
         // Find dimension of convolution output
         checkCUDNN(cudnnGetConvolution2dForwardOutputDim(convDesc,
                                                          srcTensorDesc,
