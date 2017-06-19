@@ -922,6 +922,8 @@ int main(int argc, char **argv)
     auto t1 = std::chrono::high_resolution_clock::now();
     for (int iter = 0; iter < FLAGS_iterations; ++iter)
     {
+        std::cout << "Training iter " << iter << std::endl;
+
         // Train
         int imageid = iter % (train_size / context.m_batchSize);
 
