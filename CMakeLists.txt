@@ -46,11 +46,7 @@ unset(CUDA_rt_LIBRARY CACHE)
 endif(USE_CUDA)
 
 if(USE_OPENCL)
-if(WIN32)
-    include("$ENV{COCL_CMAKE}\\cocl.cmake")
-else()
-    include("$ENV{COCL_CMAKE}/cocl.cmake")
-endif()
+include("$ENV{COCL_CMAKE}\\cocl.cmake")
 if(COMMAND cocl_add_executable)
     # new form
     cocl_add_executable(lenet lenet.cu readubyte.cpp)
