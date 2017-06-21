@@ -4,6 +4,13 @@ project (cudnn-training)
 option(USE_CUDA "Build for CUDA platform" ON)
 option(USE_OPENCL "Build for OpenCL. Needs Coriander" OFF)
 
+# Addresses a bug where code is not compiled as C++11 in non-CUDA code and older g++ versions
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+if(USE_GFLAGS)
+  add_definitions(-DUSE_GFLAGS)
+endif()
+
 if(USE_CUDA)
 find_package(CUDA 6.5 REQUIRED)
 
@@ -18,13 +25,6 @@ else()
 endif()
 
 set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-
-# Addresses a bug where code is not compiled as C++11 in non-CUDA code and older g++ versions
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-if(USE_GFLAGS)
-  add_definitions(-DUSE_GFLAGS)
-endif()
 
 include_directories($ENV{CUDNN_PATH} $ENV{CUDNN_PATH}/include)
 link_directories($ENV{CUDNN_PATH} $ENV{CUDNN_PATH}/lib $ENV{CUDNN_PATH}/lib64)
