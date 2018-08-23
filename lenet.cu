@@ -564,12 +564,11 @@ struct TrainingContext
                                   pconv1bias, &alpha, conv1Tensor, conv1));
 
         // http://cs231n.github.io/neural-networks-1/
-        //  each neuron performs a dot product with the input and its weights, adds the bias 
+        //  each neuron performs a dot product with the input and its weights (here convolution), adds the bias 
         // and applies the non-linearity (or activation function)
         // => so do activation AFTER adding the BIAS
 
 
-        // directly  after cudnnAddTensor(...conv1BiasTensor...)   for conv1 : 
         // ReLU activation
         float alphaCONV1 = 1.0f; 
         float betaCONV1 = 0.0f; 
