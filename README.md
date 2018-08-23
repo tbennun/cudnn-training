@@ -11,6 +11,9 @@ NOTE:
 
 
 Info From Original Readme:
+==========================
+
+
 
 A CUDNN minimal deep learning training code sample using LeNet.
 
