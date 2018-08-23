@@ -30,8 +30,8 @@ NOTE:
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, iterations: 200000
    Classification result: 0.91% error (used 10000 images)
 - results after additionally adding DropOut Layer:
-   Training dataset size: 60000, Test dataset size: 10000 Batch size: 32 DropOut Rate = 0.4
-   iterations: 500000 Classification result: 0.84% error (used 10000 images)
+   Training dataset size: 60000, Test dataset size: 10000 Batch size: 32 DropOut Rate = 0.4;
+   iterations: 500000 Classification result: 0.84% error (used 10000 images);
    iterations: 200000 Classification result: 0.86% error (used 10000 images)
 - results after additionally adding Nestorov Momentum:
    NesterovMomentumWeightUpdate Momentum=0.9 Learning Rate: 0.001
