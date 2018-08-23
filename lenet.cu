@@ -12,6 +12,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#define USE_NESTEROV_MOMENTUM
+
+
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -333,6 +336,35 @@ __global__ void SoftmaxLossBackprop(const float *label, int num_labels, int batc
     // For each item in the batch, decrease the result of the label's value by 1
     diff[idx * num_labels + label_value] -= 1.0f;
 }
+
+
+#ifdef USE_NESTEROV_MOMENTUM
+__global__ void NesterovMomentumWeightUpdate(float *weights,  float *gradients, float *v, float learning_rate,  int size)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= size)
+        return;
+
+    float v_prev = v[idx];
+    const float MomentumUpdate = 0.9f;
+    v[idx] = MomentumUpdate * v[idx] + learning_rate * gradients[idx];
+                    // here + learning_rate (cause its already negated)
+    weights[idx] += -MomentumUpdate * v_prev + (1.0f + MomentumUpdate) * v[idx];
+
+  #if 0  // TEST ONLY    SGD Momentum
+    const float MomentumUpdate = 0.9f;
+    v[idx] = MomentumUpdate * v[idx] + learning_rate * gradients[idx];
+    weights[idx] += v[idx];
+  #endif
+
+  #if 0 // TEST ONLY   (same as calling cublasSaxpy(...))
+    // pure SGD:
+    float  v0  = learning_rate * gradients[idx];
+    weights[idx] += v0;
+  #endif
+}
+#endif
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // CUDNN/CUBLAS training context
