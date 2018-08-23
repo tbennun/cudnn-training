@@ -2,7 +2,7 @@ NOTE:
 =====
 
 - this project was forked from https://github.com/tbennun/cudnn-training
-- additionally RElu activaitons for the biased convolution layers were applied
+- additionally RElu activatons for the biased convolution layers were applied
 - based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the convolution bias was applied
 - a DropOut Layer was applied
 - Nesterov Momentum was applied
