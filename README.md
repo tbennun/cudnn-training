@@ -3,7 +3,7 @@ NOTE:
 
 - this project was forked from https://github.com/tbennun/cudnn-training
 - additionally RElu activaitons for the biased convolution layers were applied
-- based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the bias was applied
+- based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the convolution bias was applied
 - a DropOut Layer was applied
 - Nesterov Momentum was applied
 - tested on Win10PRO (v1607) 64bit CUDA 9.0 VS2017 (toolset v140)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
