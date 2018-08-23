@@ -13,7 +13,7 @@
  */
 
 #define USE_NESTEROV_MOMENTUM
-#define DROPOUT_LAYER
+#define USE_DROPOUT_LAYER
 
 #include <cstdio>
 #include <cstdlib>
@@ -521,7 +521,7 @@ struct TrainingContext
     
     
     
-#ifdef DROPOUT_LAYER
+#ifdef USE_DROPOUT_LAYER
   // taken from: https://devtalk.nvidia.com/default/topic/1028240/cudnn/how-to-implement-a-dropout-layer-using-cudnn-/
   // unclassed to pure functions within this class:
 
@@ -774,7 +774,7 @@ struct TrainingContext
                                           fc1Tensor, fc1, &beta, fc1Tensor, fc1relu));
 
         
-#ifdef DROPOUT_LAYER
+#ifdef USE_DROPOUT_LAYER
         if (UseDropOut)
         {
           // on https://www.tensorflow.org/tutorials/estimators/cnn
@@ -898,7 +898,7 @@ struct TrainingContext
                                     &alpha, pfc2, ref_fc2.inputs, dloss_data, ref_fc2.outputs, &beta, dfc2, ref_fc2.inputs));
         
         
-#ifdef DROPOUT_LAYER
+#ifdef USE_DROPOUT_LAYER
         if (UseDropOut)
         {
           float* d_in_grads = dfc2;
@@ -1125,7 +1125,7 @@ int main(int argc, char **argv)
     // Initialize CUDNN/CUBLAS training context
     TrainingContext context(FLAGS_gpu, FLAGS_batch_size, conv1, pool1, conv2, pool2, fc1, fc2);
     
-#ifdef DROPOUT_LAYER
+#ifdef USE_DROPOUT_LAYER
     float dropRate = 0.4f;
     context.InitDropout(dropRate, FLAGS_batch_size, /*features: */ 1,  /* wid= */  fc1.outputs, /* hei: */  1);
 #endf    
