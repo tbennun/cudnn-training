@@ -1,3 +1,4 @@
+// this project was forked from https://github.com/tbennun/cudnn-training
 /*
  * This code is released into the public domain.
  *
