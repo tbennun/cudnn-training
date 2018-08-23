@@ -4,7 +4,9 @@ NOTE:
 - this project was forked from https://github.com/tbennun/cudnn-training
 - additionally RElu activaitons for the biased convolution layers were applied
 - based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the bias was applied
-- tested on Win10 64bit CUDA 9.0 VS2017 (toolset v140)  
+- tested on Win10 64bit CUDA 9.0 VS2017 (toolset v140)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
+- added CompileCU.bat (to compile lenet.cu with nvcc.exe using VS2015 cl.exe and CUDA 9.0 toolkit)
+- in the VS2017 project property settings also  $(CUDA_PATH)\include needs to be added to the "Additional Include Directories"
 - results after adding the RElu activations: 
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, iterations: 200000
    Classification result: 0.91% error (used 10000 images)
