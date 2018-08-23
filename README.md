@@ -1,7 +1,7 @@
 NOTE:
 - this project was forked from https://github.com/tbennun/cudnn-training
 - additionally RElu activaitons for the biased convolution layers were applied
-  (based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the bias was applied)
+- based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the bias was applied
 - tested on Win10 64bit CUDA 9.0 VS2017 (toolset v140)  
 - results after adding the RElu activations: 
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, iterations: 200000
