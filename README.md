@@ -18,7 +18,7 @@ NOTE:
    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\cufftw.lib
    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\curand.lib
 - cudnn.h also must be accessable by the project   
-- no pre-comopiled headers
+- no pre-compiled headers
 - MT static run-time library linking
 - Optimization /O2 /Ot
 - results after adding the RElu activations: 
