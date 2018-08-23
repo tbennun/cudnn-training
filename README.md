@@ -7,6 +7,17 @@ NOTE:
 - tested on Win10 64bit CUDA 9.0 VS2017 (toolset v140)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
 - added CompileCU.bat (to compile lenet.cu with nvcc.exe using VS2015 cl.exe and CUDA 9.0 toolkit)
 - in the VS2017 project property settings also  $(CUDA_PATH)\include needs to be added to the "Additional Include Directories"
+- 
+   all these dependencies required in in Linker/Additional Dependencies:
+   cudnn\cudnn.lib
+   cudnn\lenet.obj
+   C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\cuda.lib
+   C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\cudart_static.lib
+   C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\cublas.lib
+   C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\cufft.lib
+   C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\cufftw.lib
+   C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\curand.lib
+- the CMAKE file from forked repo does not work in VS2017
 - results after adding the RElu activations: 
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, iterations: 200000
    Classification result: 0.91% error (used 10000 images)
