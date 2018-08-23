@@ -1,4 +1,6 @@
 NOTE:
+=====
+
 - this project was forked from https://github.com/tbennun/cudnn-training
 - additionally RElu activaitons for the biased convolution layers were applied
 - based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the bias was applied
@@ -7,11 +9,11 @@ NOTE:
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, iterations: 200000
    Classification result: 0.91% error (used 10000 images)
 
-
+---------------------------------------------------------------------------------------------------------------
 
 
 Info From Original Readme:
-==========================
+
 
 
 
