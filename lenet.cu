@@ -350,6 +350,8 @@ struct TrainingContext
     cudnnPoolingDescriptor_t poolDesc;
     cudnnActivationDescriptor_t fc1Activation;
 
+    cudnnActivationDescriptor_t conv1Activation;  // also RElu  (here also "fc1Activation" could be re-used, if both always remain RElu's)
+    
     int m_gpuid;
     int m_batchSize;
     size_t m_workspaceSize;
@@ -383,6 +385,7 @@ struct TrainingContext
         checkCUDNN(cudnnCreateTensorDescriptor(&fc2Tensor));
 
         checkCUDNN(cudnnCreateActivationDescriptor(&fc1Activation));
+        checkCUDNN(cudnnCreateActivationDescriptor(&conv1Activation));
 
         checkCUDNN(cudnnCreateFilterDescriptor(&conv1filterDesc));
         checkCUDNN(cudnnCreateFilterDescriptor(&conv2filterDesc));
@@ -392,6 +395,7 @@ struct TrainingContext
 
         checkCUDNN(cudnnCreatePoolingDescriptor(&poolDesc));            
 
+        
         
         // Set tensor descriptor sizes
         checkCUDNN(cudnnSetTensor4dDescriptor(conv1BiasTensor,
@@ -428,10 +432,10 @@ struct TrainingContext
                                               CUDNN_DATA_FLOAT,
                                               batch_size, fc2.outputs, 1, 1));
 
-        checkCUDNN(cudnnSetActivationDescriptor(fc1Activation, CUDNN_ACTIVATION_RELU,
-                                                CUDNN_PROPAGATE_NAN, 0.0));
-
-
+        checkCUDNN(cudnnSetActivationDescriptor(fc1Activation, CUDNN_ACTIVATION_RELU, CUDNN_PROPAGATE_NAN, 0.0));
+        checkCUDNN(cudnnSetActivationDescriptor(conv1Activation, CUDNN_ACTIVATION_RELU, CUDNN_PROPAGATE_NAN, 0.0));        
+        
+        
         // Set convolution tensor sizes and compute workspace size
         size_t workspace = 0;
         workspace = std::max(workspace, SetFwdConvolutionTensors(conv1, dataTensor, conv1Tensor, conv1filterDesc, conv1Desc, conv1algo));
@@ -460,6 +464,7 @@ struct TrainingContext
         checkCUDNN(cudnnDestroyTensorDescriptor(fc1Tensor));
         checkCUDNN(cudnnDestroyTensorDescriptor(fc2Tensor));
         checkCUDNN(cudnnDestroyActivationDescriptor(fc1Activation));
+        checkCUDNN(cudnnDestroyActivationDescriptor(conv1Activation));        
         checkCUDNN(cudnnDestroyFilterDescriptor(conv1filterDesc));
         checkCUDNN(cudnnDestroyFilterDescriptor(conv2filterDesc));
         checkCUDNN(cudnnDestroyConvolutionDescriptor(conv1Desc));
@@ -538,7 +543,9 @@ struct TrainingContext
         return sizeInBytes;
     }
 
-    void ForwardPropagation(float *data, float *conv1, float *pool1, float *conv2, float *pool2, float *fc1, float *fc1relu,
+    void ForwardPropagation(float *data, float *conv1, float *conv1relu, float *pool1, 
+                            float *conv2, float *conv2relu, float *pool2,  
+                            float *fc1, float *fc1relu,
                             float *fc2, float *result,
                             float *pconv1, float *pconv1bias, 
                             float *pconv2, float *pconv2bias, 
@@ -556,9 +563,22 @@ struct TrainingContext
         checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv1BiasTensor,
                                   pconv1bias, &alpha, conv1Tensor, conv1));
 
-        // Pool1 layer
+        // http://cs231n.github.io/neural-networks-1/
+        //  each neuron performs a dot product with the input and its weights, adds the bias 
+        // and applies the non-linearity (or activation function)
+        // => so do activation AFTER adding the BIAS
+
+
+        // directly  after cudnnAddTensor(...conv1BiasTensor...)   for conv1 : 
+        // ReLU activation
+        float alphaCONV1 = 1.0f; 
+        float betaCONV1 = 0.0f; 
+        checkCUDNN(cudnnActivationForward(cudnnHandle, conv1Activation, &alphaCONV1,
+                                          conv1Tensor, conv1, &betaCONV1, conv1Tensor, conv1relu));
+
+        // Pool1 layer 
         checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha, conv1Tensor,
-                                       conv1, &beta, pool1Tensor, pool1));
+                                       conv1relu, &beta, pool1Tensor, pool1));   // changed: conv1 to conv1relu            
 
         // Conv2 layer
         checkCUDNN(cudnnConvolutionForward(cudnnHandle, &alpha, pool1Tensor,
@@ -567,10 +587,18 @@ struct TrainingContext
                                            conv2Tensor, conv2));
         checkCUDNN(cudnnAddTensor(cudnnHandle, &alpha, conv2BiasTensor,
                                   pconv2bias, &alpha, conv2Tensor, conv2));
+        
+        
+        // ReLU activation
+        float alphaCONV2 = 1.0f; 
+        float betaCONV2 = 0.0f; 
+        checkCUDNN(cudnnActivationForward(cudnnHandle, conv1Activation, &alphaCONV2,
+                                          conv2Tensor, conv2, &betaCONV2, conv2Tensor, conv2relu));
 
         // Pool2 layer
         checkCUDNN(cudnnPoolingForward(cudnnHandle, poolDesc, &alpha, conv2Tensor,
-                                       conv2, &beta, pool2Tensor, pool2));
+                                       conv2relu, &beta, pool2Tensor, pool2));   // changed: conv2 to conv2relu
+                            
 
         // FC1 layer
         // Forward propagate neurons using weights (fc1 = pfc1'*pool2)
@@ -655,14 +683,17 @@ struct TrainingContext
     }
 
     void Backpropagation(ConvBiasLayer& layer_conv1, MaxPoolLayer& layer_pool1, ConvBiasLayer& layer_conv2, MaxPoolLayer& layer_pool2,
-                         float *data, float *labels, float *conv1, float *pool1, float *conv2, float *pool2, float *fc1, float *fc1relu,
+                         float *data, float *labels, 
+                         float *conv1, float *conv1relu,  float *pool1, 
+                         float *conv2, float *conv2relu,  float *pool2, 
+                         float *fc1, float *fc1relu,
                          float *fc2, float *fc2smax, float *dloss_data,
                          float *pconv1, float *pconv1bias,
                          float *pconv2, float *pconv2bias,
                          float *pfc1, float *pfc1bias,
                          float *pfc2, float *pfc2bias,
-                         float *gconv1, float *gconv1bias, float *dpool1,
-                         float *gconv2, float *gconv2bias, float *dconv2, float *dpool2,
+                         float *gconv1, float *gconv1bias, float *dpool1, float *dconv1relu,
+                         float *gconv2, float *gconv2bias, float *dconv2, float *dpool2,  float *dconv2relu,
                          float *gfc1, float *gfc1bias, float *dfc1, float *dfc1relu,
                          float *gfc2, float *gfc2bias, float *dfc2,
                          void *workspace, float *onevec)
@@ -714,10 +745,17 @@ struct TrainingContext
                                         pool2Tensor, pool2, pool2Tensor, dfc1,
                                         conv2Tensor, conv2, &beta, conv2Tensor, dpool2));
         
+        // ReLU activation  
+        float alphaCONV2 = 1.0f; 
+        float betaCONV2 = 0.0f; 
+        checkCUDNN(cudnnActivationBackward(cudnnHandle, conv1Activation, &alphaCONV2,  // re-use conv1Activation also for conv2
+                                           conv2Tensor, conv2relu, conv2Tensor, dpool2,   
+                                           conv2Tensor, conv2, &betaCONV2, conv2Tensor, dconv2relu));
+
         // Conv2 layer
         checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv2Tensor,
-                                                dpool2, &beta, conv2BiasTensor, gconv2bias));
-
+                                                dconv2relu, &beta, conv2BiasTensor, gconv2bias));     // changed:  dpool2 to dconv2relu
+                
         
         checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha, pool1Tensor,
                                                   pool1, conv2Tensor, dpool2, conv2Desc,
@@ -734,9 +772,16 @@ struct TrainingContext
                                         pool1Tensor, pool1, pool1Tensor, dconv2,
                                         conv1Tensor, conv1, &beta, conv1Tensor, dpool1));
         
-        // Conv1 layer
+        // ReLU activation
+        float alphaCONV1 = 1.0f; 
+        float betaCONV1 = 0.0f; 
+        checkCUDNN(cudnnActivationBackward(cudnnHandle, conv1Activation, &alphaCONV1,
+                                           conv1Tensor, conv1relu, conv1Tensor, dpool1,   
+                                           conv1Tensor, conv1, &betaCONV1, conv1Tensor, dconv1relu));
+
+        // Conv1 layer 
         checkCUDNN(cudnnConvolutionBackwardBias(cudnnHandle, &alpha, conv1Tensor,
-                                                dpool1, &beta, conv1BiasTensor, gconv1bias));
+                                                dconv1relu, &beta, conv1BiasTensor, gconv1bias));  // changed: dpool1 to dconv1relu
         
         checkCUDNN(cudnnConvolutionBackwardFilter(cudnnHandle, &alpha, dataTensor,
                                                   data, conv1Tensor, dpool1, conv1Desc,
@@ -912,6 +957,12 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMalloc(&d_fc2,     sizeof(float) * context.m_batchSize * fc2.outputs));
     checkCudaErrors(cudaMalloc(&d_fc2smax, sizeof(float) * context.m_batchSize * fc2.outputs));    
 
+    float *d_conv1relu, *d_conv2relu;
+    checkCudaErrors(cudaMalloc(&d_conv1relu,sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                          * conv1.out_width));   // same dimension as on  conv1
+    checkCudaErrors(cudaMalloc(&d_conv2relu,sizeof(float) * context.m_batchSize * conv2.out_channels * conv2.out_height                        * conv2.out_width));    // same dimension as on  conv2
+
+  
+    
     // Network parameters
     float *d_pconv1, *d_pconv1bias, *d_pconv2, *d_pconv2bias;
     float *d_pfc1, *d_pfc1bias, *d_pfc2, *d_pfc2bias;
@@ -924,6 +975,9 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMalloc(&d_pfc1bias,   sizeof(float) * fc1.pbias.size()));
     checkCudaErrors(cudaMalloc(&d_pfc2,       sizeof(float) * fc2.pneurons.size()));
     checkCudaErrors(cudaMalloc(&d_pfc2bias,   sizeof(float) * fc2.pbias.size()));    
+
+   
+    
     
     // Network parameter gradients
     float *d_gconv1, *d_gconv1bias, *d_gconv2, *d_gconv2bias;
@@ -937,6 +991,11 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMalloc(&d_gfc1bias,   sizeof(float) * fc1.pbias.size()));    
     checkCudaErrors(cudaMalloc(&d_gfc2,       sizeof(float) * fc2.pneurons.size()));
     checkCudaErrors(cudaMalloc(&d_gfc2bias,   sizeof(float) * fc2.pbias.size()));
+
+    float *d_dconv1relu, *d_dconv2relu; 
+    checkCudaErrors(cudaMalloc(&d_dconv1relu,     sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                         * conv1.out_width)); // same dimension as on d_dpool1
+    checkCudaErrors(cudaMalloc(&d_dconv2relu,     sizeof(float) * context.m_batchSize * conv2.out_channels * conv2.out_height                         * conv2.out_width));  // same dimension as on d_dpool2
+    
     
     // Differentials w.r.t. data
     float *d_dpool1, *d_dpool2, *d_dconv2, *d_dfc1, *d_dfc1relu, *d_dfc2, *d_dfc2smax, *d_dlossdata;
@@ -999,18 +1058,20 @@ int main(int argc, char **argv)
         checkCudaErrors(cudaMemcpyAsync(d_labels, &train_labels_float[imageid * context.m_batchSize],
                                         sizeof(float) * context.m_batchSize, cudaMemcpyHostToDevice));
         
+        
         // Forward propagation
-        context.ForwardPropagation(d_data, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax, 
+        context.ForwardPropagation(d_data, d_conv1, d_conv1relu, d_pool1, d_conv2, d_conv2relu, d_pool2,  d_fc1, d_fc1relu, d_fc2, d_fc2smax, 
                                    d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                                    d_cudnn_workspace, d_onevec);
 
         // Backward propagation
         context.Backpropagation(conv1, pool1, conv2, pool2,
-                                d_data, d_labels, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax, d_dlossdata,
+                                d_data, d_labels, d_conv1, d_conv1relu, d_pool1, d_conv2, d_conv2relu, d_pool2,  d_fc1, d_fc1relu, d_fc2, d_fc2smax, d_dlossdata,
                                 d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
-                                d_gconv1, d_gconv1bias, d_dpool1, d_gconv2, d_gconv2bias, d_dconv2, d_dpool2, d_gfc1, d_gfc1bias, 
+                                d_gconv1, d_gconv1bias, d_dpool1,  d_dconv1relu,  d_gconv2, d_gconv2bias, d_dconv2, d_dpool2,  d_dconv2relu, d_gfc1, d_gfc1bias, 
                                 d_dfc1, d_dfc1relu, d_gfc2, d_gfc2bias, d_dfc2, d_cudnn_workspace, d_onevec);
-
+        
+        
         // Compute learning rate
         float learningRate = static_cast<float>(FLAGS_learning_rate * pow((1.0 + FLAGS_lr_gamma * iter), (-FLAGS_lr_power)));
 
@@ -1075,10 +1136,10 @@ int main(int argc, char **argv)
             checkCudaErrors(cudaMemcpyAsync(d_data, &data[0], sizeof(float) * width * height, cudaMemcpyHostToDevice));
             
             // Forward propagate test image
-            test_context.ForwardPropagation(d_data, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax,
-                                            d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias,
-                                            d_pfc2, d_pfc2bias, d_cudnn_workspace, d_onevec);
-
+            testcontext.ForwardPropagation(d_data, d_conv1, d_conv1relu, d_pool1, d_conv2, d_conv2relu, d_pool2,  d_fc1, d_fc1relu, d_fc2, d_fc2smax, 
+                                   d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
+                                   d_cudnn_workspace, d_onevec);
+            
             // Perform classification
             std::vector<float> class_vec(10);
 
@@ -1102,11 +1163,22 @@ int main(int argc, char **argv)
         
     // Free data structures
     checkCudaErrors(cudaFree(d_data));
+    
     checkCudaErrors(cudaFree(d_conv1));
     checkCudaErrors(cudaFree(d_pool1));
+    checkCudaErrors(cudaFree(d_conv1relu));
+    checkCudaErrors(cudaFree(d_dconv1relu));
+    
     checkCudaErrors(cudaFree(d_conv2));
     checkCudaErrors(cudaFree(d_pool2));
+    checkCudaErrors(cudaFree(d_conv2relu));
+    checkCudaErrors(cudaFree(d_dconv2relu));
+  
+    
     checkCudaErrors(cudaFree(d_fc1));
+    checkCudaErrors(cudaFree(d_fc1relu));
+    checkCudaErrors(cudaFree(d_dfc1relu));
+    
     checkCudaErrors(cudaFree(d_fc2));
     checkCudaErrors(cudaFree(d_pconv1));
     checkCudaErrors(cudaFree(d_pconv1bias));
