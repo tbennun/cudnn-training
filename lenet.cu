@@ -339,6 +339,16 @@ __global__ void SoftmaxLossBackprop(const float *label, int num_labels, int batc
 
 
 #ifdef USE_NESTEROV_MOMENTUM
+
+__global__ void FillZeroes(float *vec, int size)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= size)
+        return;
+
+    vec[idx] = 0.0f;
+}
+
 __global__ void NesterovMomentumWeightUpdate(float *weights,  float *gradients, float *v, float learning_rate,  int size)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
