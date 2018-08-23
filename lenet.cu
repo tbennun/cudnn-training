@@ -125,10 +125,10 @@ DEFINE_uint64(batch_size, 64, "Batch size for training");
 // Filenames
 DEFINE_bool(pretrained, false, "Use the pretrained CUDNN model as input");
 DEFINE_bool(save_data, false, "Save pretrained weights to file");
-DEFINE_string(train_images, "train-images-idx3-ubyte", "Training images filename");
-DEFINE_string(train_labels, "train-labels-idx1-ubyte", "Training labels filename");
-DEFINE_string(test_images, "t10k-images-idx3-ubyte", "Test images filename");
-DEFINE_string(test_labels, "t10k-labels-idx1-ubyte", "Test labels filename");
+DEFINE_string(train_images, "train-images.idx3-ubyte", "Training images filename");
+DEFINE_string(train_labels, "train-labels.idx1-ubyte", "Training labels filename");
+DEFINE_string(test_images, "t10k-images.idx3-ubyte", "Test images filename");
+DEFINE_string(test_labels, "t10k-labels.idx1-ubyte", "Test labels filename");
 
 // Solver parameters
 DEFINE_double(learning_rate, 0.01, "Base learning rate");
