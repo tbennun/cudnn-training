@@ -843,10 +843,47 @@ struct TrainingContext
                        float *gconv1, float *gconv1bias,
                        float *gconv2, float *gconv2bias,
                        float *gfc1, float *gfc1bias,
-                       float *gfc2, float *gfc2bias)
+                       float *gfc2, float *gfc2bias,                      
+                       float *vconv1,  float *vconv1bias,
+                       float *vconv2,   float *vconv2bias,
+                       float *vfc1,        float *vfc1bias,
+                       float *vfc2,        float *vfc2bias)
     {    
         float alpha = -learning_rate;
+        
+#ifdef USE_NESTEROV_MOMENTUM
+        
+       const float momentum = 0.9f;
+        
+       const int size_conv1 = static_cast<int>(conv1.pconv.size());
+       const int size_conv1bias = static_cast<int>(conv1.pbias.size());
 
+       const int size_conv2 = static_cast<int>(conv2.pconv.size());
+       const int size_conv2bias = static_cast<int>(conv2.pbias.size());
+
+       const int size_fc1 = static_cast<int>(ref_fc1.pneurons.size());
+       const int size_fc1bias = static_cast<int>(ref_fc1.pbias.size());
+
+       const int size_fc2 = static_cast<int>(ref_fc2.pneurons.size());
+       const int size_fc2bias = static_cast<int>(ref_fc2.pbias.size());
+        
+         // Conv1
+         NesterovMomentumWeightUpdate << <RoundUp(size_conv1, BW), BW >> > (pconv1, gconv1, vconv1, alpha, momentum, size_conv1);
+         NesterovMomentumWeightUpdate << <RoundUp(size_conv1bias, BW), BW >> > (pconv1bias, gconv1bias, vconv1bias, alpha, momentum, size_conv1bias);
+
+         // Conv2
+         NesterovMomentumWeightUpdate << <RoundUp(size_conv2, BW), BW >> > (pconv2, gconv2, vconv2, alpha, momentum, size_conv2);
+         NesterovMomentumWeightUpdate << <RoundUp(size_conv2bias, BW), BW >> > (pconv2bias, gconv2bias, vconv2bias, alpha, momentum, size_conv2bias);
+
+         // Fully connected 1
+         NesterovMomentumWeightUpdate << <RoundUp(size_fc1, BW), BW >> > (pfc1, gfc1, vfc1, alpha, momentum, size_fc1);
+         NesterovMomentumWeightUpdate << <RoundUp(size_fc1bias, BW), BW >> > (pfc1bias, gfc1bias, vfc1bias, alpha, momentum, size_fc1bias);
+
+         // Fully connected 2
+         NesterovMomentumWeightUpdate << <RoundUp(size_fc2, BW), BW >> > (pfc2, gfc2, vfc2, alpha, momentum, size_fc2);
+         NesterovMomentumWeightUpdate << <RoundUp(size_fc2bias, BW), BW >> > (pfc2bias, gfc2bias, vfc2bias, alpha, momentum, size_fc2bias);
+        
+#else        
         checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // Conv1
@@ -872,6 +909,7 @@ struct TrainingContext
                                     &alpha, gfc2, 1, pfc2, 1));
         checkCudaErrors(cublasSaxpy(cublasHandle, static_cast<int>(ref_fc2.pbias.size()),
                                     &alpha, gfc2bias, 1, pfc2bias, 1));
+#endif        
     }
 };
 
@@ -1146,7 +1184,11 @@ int main(int argc, char **argv)
         // Update weights
         context.UpdateWeights(learningRate, conv1, conv2,
                               d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
-                              d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias);
+                              d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias,
+                             d_vconv1,  d_vconv1bias,
+                             d_vconv2,   d_vconv2bias,
+                             d_vfc1,        d_vfc1bias,
+                             d_vfc2,        d_vfc2bias );
     }
     checkCudaErrors(cudaDeviceSynchronize());
     auto t2 = std::chrono::high_resolution_clock::now();
