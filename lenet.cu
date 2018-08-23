@@ -13,7 +13,7 @@
  */
 
 #define USE_NESTEROV_MOMENTUM
-
+#define DROPOUT_LAYER
 
 #include <cstdio>
 #include <cstdlib>
@@ -514,7 +514,115 @@ struct TrainingContext
         checkCUDNN(cudnnDestroyConvolutionDescriptor(conv1Desc));
         checkCUDNN(cudnnDestroyConvolutionDescriptor(conv2Desc));
         checkCUDNN(cudnnDestroyPoolingDescriptor(poolDesc));
+        #ifdef DROPOUT_LAYER
+          RemoveDropOut();
+        #endif
     }
+    
+    
+    
+#ifdef DROPOUT_LAYER
+  // taken from: https://devtalk.nvidia.com/default/topic/1028240/cudnn/how-to-implement-a-dropout-layer-using-cudnn-/
+  // unclassed to pure functions within this class:
+
+    bool UseDropOut = false;
+
+	  cudnnDropoutDescriptor_t dropout_descriptor = NULL;
+	  size_t dropout_state_size;
+	  size_t dropout_reserve_size;
+
+    cudnnTensorDescriptor_t dropout_in_out_descriptor = NULL;
+
+	  float dropRate;
+	  float* ref_input{nullptr};
+	  float* d_dropout_out{nullptr};
+	  float* d_dx_dropout{nullptr};
+	  void* states=NULL;
+	  void* dropout_reserve_space=NULL;
+	  int batchSize, features, imgH, imgW;
+	  int in_out_bytes;
+
+
+	int InitDropout(float dropRate, int batchSize, int features, int imageH, int imageW) 
+	{
+		in_out_bytes = sizeof(float)*batchSize*features*imageH*imageW;
+		
+        if (dropRate <= 0.0f) return 1; // cancelled; avoid DropOut Layer
+        if (!cudnnHandle) return -1; // failed
+
+
+		checkCUDNN(cudnnCreateDropoutDescriptor(&dropout_descriptor));
+		checkCUDNN(cudnnCreateTensorDescriptor(&dropout_in_out_descriptor));
+
+		checkCUDNN(cudnnSetTensor4dDescriptor(dropout_in_out_descriptor,
+											  CUDNN_TENSOR_NCHW,
+											  CUDNN_DATA_FLOAT,
+											  batchSize,
+											  features,
+											  imageH,
+											  imageW));
+
+		checkCUDNN(cudnnDropoutGetStatesSize(cudnnHandle, &dropout_state_size));
+
+		checkCUDNN(cudnnDropoutGetReserveSpaceSize(dropout_in_out_descriptor, &dropout_reserve_size));
+
+		// Allocate memory for states and reserve space
+		checkCudaErrors(cudaMalloc(&states,dropout_state_size));
+		checkCudaErrors(cudaMalloc(&dropout_reserve_space,dropout_reserve_size));
+
+		checkCUDNN(cudnnSetDropoutDescriptor(dropout_descriptor,
+											cudnnHandle,
+											dropRate,
+											states,
+											dropout_state_size,
+											/*Seed*/time(NULL)));
+
+		checkCudaErrors(cudaMalloc(&d_dropout_out, in_out_bytes));
+		checkCudaErrors(cudaMalloc(&d_dx_dropout, in_out_bytes));
+
+
+
+    UseDropOut = true; 
+
+    return 0; // ok
+	}
+
+
+
+  void RemoveDropOut()
+  {
+
+    if (states)
+    {
+      checkCudaErrors(cudaFree(states));
+    }
+    if (dropout_reserve_space)
+    {
+      checkCudaErrors(cudaFree(dropout_reserve_space));
+    }
+    if (d_dropout_out)
+    {
+      checkCudaErrors(cudaFree(d_dropout_out));
+    }
+    if (d_dx_dropout)
+    {
+      checkCudaErrors(cudaFree(d_dx_dropout));
+    }
+
+
+    if (dropout_descriptor)
+    {
+      checkCUDNN(cudnnDestroyDropoutDescriptor(dropout_descriptor));
+      dropout_descriptor = NULL;
+    }
+
+    if (dropout_in_out_descriptor)
+    {
+      checkCUDNN(cudnnDestroyTensorDescriptor(dropout_in_out_descriptor));
+      dropout_in_out_descriptor = NULL;
+    }
+  }
+#endif
 
     size_t SetFwdConvolutionTensors(ConvBiasLayer& conv, cudnnTensorDescriptor_t& srcTensorDesc, cudnnTensorDescriptor_t& dstTensorDesc,
                                     cudnnFilterDescriptor_t& filterDesc, cudnnConvolutionDescriptor_t& convDesc, 
@@ -665,6 +773,28 @@ struct TrainingContext
         checkCUDNN(cudnnActivationForward(cudnnHandle, fc1Activation, &alpha,
                                           fc1Tensor, fc1, &beta, fc1Tensor, fc1relu));
 
+        
+#ifdef DROPOUT_LAYER
+        if (UseDropOut)
+        {
+          // on https://www.tensorflow.org/tutorials/estimators/cnn
+          // dropout regularization is done after the RElu activatio
+          ref_input = fc1relu;
+
+		       checkCUDNN(cudnnDropoutForward(cudnnHandle,
+									   dropout_descriptor,
+									   dropout_in_out_descriptor,
+									   ref_input,
+									   dropout_in_out_descriptor,
+									   d_dropout_out,
+									   dropout_reserve_space,
+									   dropout_reserve_size));
+
+         fc1relu = d_dropout_out;
+        }
+#endif        
+        
+        
         // FC2 layer
         // Forward propagate neurons using weights (fc2 = pfc2'*fc1relu)
         checkCudaErrors(cublasSgemm(cublasHandle, CUBLAS_OP_T, CUBLAS_OP_N,
@@ -766,6 +896,25 @@ struct TrainingContext
         // Compute derivative with respect to data (for previous layer): pfc2*dfc2smax (500x10*10xN)
         checkCudaErrors(cublasSgemm(cublasHandle, CUBLAS_OP_N, CUBLAS_OP_N, ref_fc2.inputs, m_batchSize, ref_fc2.outputs,
                                     &alpha, pfc2, ref_fc2.inputs, dloss_data, ref_fc2.outputs, &beta, dfc2, ref_fc2.inputs));
+        
+        
+#ifdef DROPOUT_LAYER
+        if (UseDropOut)
+        {
+          float* d_in_grads = dfc2;
+
+      		checkCUDNN(cudnnDropoutBackward(cudnnHandle,
+										dropout_descriptor,
+										dropout_in_out_descriptor,
+										d_in_grads,
+										dropout_in_out_descriptor,
+										d_dx_dropout,
+										dropout_reserve_space,
+										dropout_reserve_size));
+
+           dfc2 = d_dx_dropout;
+        }
+#endif
         
         // ReLU activation
         checkCUDNN(cudnnActivationBackward(cudnnHandle, fc1Activation, &alpha,
@@ -975,6 +1124,11 @@ int main(int argc, char **argv)
 
     // Initialize CUDNN/CUBLAS training context
     TrainingContext context(FLAGS_gpu, FLAGS_batch_size, conv1, pool1, conv2, pool2, fc1, fc2);
+    
+#ifdef DROPOUT_LAYER
+    float dropRate = 0.4f;
+    context.InitDropout(dropRate, FLAGS_batch_size, /*features: */ 1,  /* wid= */  fc1.outputs, /* hei: */  1);
+#endf    
     
     // Determine initial network structure
     bool bRet = true;
