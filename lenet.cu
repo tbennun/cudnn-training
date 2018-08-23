@@ -1020,6 +1020,31 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMalloc(&d_pfc2bias,   sizeof(float) * fc2.pbias.size()));    
 
    
+    // Momentum "v" network parameters
+    float *d_vconv1=NULL, *d_vconv1bias=NULL, *d_vconv2=NULL, *d_vconv2bias=NULL;
+    float *d_vfc1=NULL, *d_vfc1bias=NULL, *d_vfc2=NULL, *d_vfc2bias=NULL;
+    
+#ifdef USE_NESTEROV_MOMENTUM
+      checkCudaErrors(cudaMalloc(&d_vconv1, sizeof(float) * conv1.pconv.size()));
+      checkCudaErrors(cudaMalloc(&d_vconv1bias, sizeof(float) * conv1.pbias.size()));
+      checkCudaErrors(cudaMalloc(&d_vconv2, sizeof(float) * conv2.pconv.size()));
+      checkCudaErrors(cudaMalloc(&d_vconv2bias, sizeof(float) * conv2.pbias.size()));
+      checkCudaErrors(cudaMalloc(&d_vfc1, sizeof(float) * fc1.pneurons.size()));
+      checkCudaErrors(cudaMalloc(&d_vfc1bias, sizeof(float) * fc1.pbias.size()));
+      checkCudaErrors(cudaMalloc(&d_vfc2, sizeof(float) * fc2.pneurons.size()));
+      checkCudaErrors(cudaMalloc(&d_vfc2bias, sizeof(float) * fc2.pbias.size()));
+
+      FillZeroes<<<RoundUp(conv1.pconv.size(), BW), BW>>>(d_vconv1, conv1.pconv.size());
+      FillZeroes<<<RoundUp(conv1.pbias.size(), BW), BW>>>(d_vconv1bias, conv1.pbias.size());
+      FillZeroes<<<RoundUp(conv2.pconv.size(), BW), BW>>>(d_vconv2, conv2.pconv.size());
+      FillZeroes<<<RoundUp(conv2.pbias.size(), BW), BW>>>(d_vconv2bias, conv2.pbias.size());
+
+      FillZeroes<<<RoundUp(fc1.pneurons.size(), BW), BW>>>(d_vfc1, fc1.pneurons.size());
+      FillZeroes<<<RoundUp(fc1.pbias.size(), BW), BW>>>(d_vfc1bias, fc1.pbias.size());
+      FillZeroes<<<RoundUp(fc2.pneurons.size(), BW), BW>>>(d_vfc2, fc2.pneurons.size());
+      FillZeroes<<<RoundUp(fc2.pbias.size(), BW), BW>>>(d_vfc2bias, fc2.pbias.size());
+#endif
+        
     
     
     // Network parameter gradients
@@ -1241,6 +1266,19 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_gfc2));
     checkCudaErrors(cudaFree(d_gfc2bias));
     checkCudaErrors(cudaFree(d_dfc2));
+    
+    
+#ifdef USE_NESTEROV_MOMENTUM
+      checkCudaErrors(cudaFree(d_vconv1));
+      checkCudaErrors(cudaFree(d_vconv1bias));
+      checkCudaErrors(cudaFree(d_vconv2));
+      checkCudaErrors(cudaFree(d_vconv2bias));
+      checkCudaErrors(cudaFree(d_vfc1));
+      checkCudaErrors(cudaFree(d_vfc1bias));
+      checkCudaErrors(cudaFree(d_vfc2));
+      checkCudaErrors(cudaFree(d_vfc2bias));    
+#endif    
+    
     checkCudaErrors(cudaFree(d_dpool1));
     checkCudaErrors(cudaFree(d_dconv2));
     checkCudaErrors(cudaFree(d_dpool2));    
