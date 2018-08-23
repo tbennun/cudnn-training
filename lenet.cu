@@ -12,6 +12,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+//#define CUDNN_MAJOR 7    // CUDA 9.0  cudnn64_7.dll
+
 #define USE_NESTEROV_MOMENTUM
 #define USE_DROPOUT_LAYER
 
