@@ -6,7 +6,7 @@ NOTE:
 - based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the convolution bias was applied
 - a DropOut Layer was applied
 - Nesterov Momentum was applied
-- tested on Win10PRO (v1607) 64bit CUDA 9.0 VS2017 Community v15.5.6 (toolset v140 of VS2015)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
+- tested on Win10PRO (v1607) 64bit CUDA 9.0 device driver: 398.36 VS2017 Community v15.5.6 (toolset v140 of VS2015)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
 - the CMAKE file and cudnn-training.sln from forked repo does not work in VS2017 (since I don't use CMAKE, instead I created a new project in VS2017)
 - added CompileCU.bat (to compile lenet.cu with nvcc.exe using VS2015 cl.exe and CUDA 9.0 toolkit to an .obj file, which then is linked   to the project)
 - in the VS2017 project property settings  $(CUDA_PATH)\include needs to be added to the "Additional Include Directories"
