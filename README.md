@@ -3,6 +3,8 @@ NOTE:
 
 - this project was forked from https://github.com/tbennun/cudnn-training
 - additionally RElu activaitons for the biased convolution layers were applied
+- a DropOut Layer was applied
+- Nesterov Momentum was applied
 - based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the bias was applied
 - tested on Win10PRO (v1607) 64bit CUDA 9.0 VS2017 (toolset v140)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
 - the CMAKE file and cudnn-training.sln from forked repo does not work in VS2017 (since I don't use CMAKE, instead I created a new project in VS2017)
@@ -24,6 +26,17 @@ NOTE:
 - results after adding the RElu activations: 
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, iterations: 200000
    Classification result: 0.91% error (used 10000 images)
+- results after additionally adding DropOut Layer:
+   Training dataset size: 60000, Test dataset size: 10000 Batch size: 32 DropOut Rate = 0.4
+   iterations: 500000 Classification result: 0.84% error (used 10000 images)
+   iterations: 200000 Classification result: 0.86% error (used 10000 images)
+- results after additionally adding Nestorov Momentum:
+   NesterovMomentumWeightUpdate Momentum=0.9 Learning Rate: 0.001
+   Training dataset size: 60000, Test dataset size: 10000 Batch size: 32,
+   LEARNING_RATE_POLICY_GAMMA 0.0001
+   LEARNING_RATE_POLICY_POWER 0.75
+   iterations: 100000 Classification result: 0.80% error (used 10000 images)
+
 
 ---------------------------------------------------------------------------------------------------------------
 Thank You tbennun for the Code! Great Project!
