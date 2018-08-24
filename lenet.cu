@@ -327,6 +327,8 @@ __global__ void FillOnes(float *vec, int size)
     vec[idx] = 1.0f;
 }
 
+
+
 /**
  * Computes the backpropagation results of the Softmax loss for each result in a batch.
  * Uses the softmax values obtained from forward propagation to compute the difference.
@@ -349,7 +351,6 @@ __global__ void SoftmaxLossBackprop(const float *label, int num_labels, int batc
 }
 
 
-#ifdef USE_NESTEROV_MOMENTUM
 
 __global__ void FillZeroes(float *vec, int size)
 {
@@ -359,6 +360,9 @@ __global__ void FillZeroes(float *vec, int size)
 
     vec[idx] = 0.0f;
 }
+
+
+#ifdef USE_NESTEROV_MOMENTUM
 
 __global__ void NesterovMomentumWeightUpdate(float *weights,  float *gradients, float *v, float learning_rate, float MomentumUpdate,  int size)
 {
