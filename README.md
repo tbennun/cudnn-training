@@ -80,10 +80,15 @@ NOTE:
   LearningRate=0.0001,  Batch size: 128; iterations: 10000   Classification result: 0.89% error (used 10000 images)
   
   
-  
+  Adam Training dataset size: 60000, Test dataset size: 10000  
+  LEARNING_RATE_POLICY_GAMMA = 0.000010  LEARNING_RATE_POLICY_POWER = 0.580000   DropOut Rate = 0.050000  : 
+
+  LearningRate = 0.000100; Batch size: 128; iterations: 10000; Classification result: 0.80% error (used 10000 images)
+
+    
 (NOTE: all the classification results are the yet best found results; they're no average of a series of tests)
 Nesterov on 100000 iterations was yet outperforming all other tests.  0.80% classification error
-Adam already has 1.15% classification error on only 10000 iterations. 
+With Adam already 0.80% classification error on only 10000 iterations reached! 
 
 internal project version: nn_v36
 
