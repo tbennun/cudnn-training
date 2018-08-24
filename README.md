@@ -31,6 +31,7 @@ NOTE:
 - results after adding the RElu activations: 
 
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, 
+   
    iterations: 200000 Classification result: 0.91% error (used 10000 images)   
    
 - results after additionally adding DropOut Layer:
@@ -69,6 +70,9 @@ Nesterov on 100000 iterations was yet outperforming all other tests.  0.80% clas
 Adam already has 1.15% classification error on only 10000 iterations. 
 
 internal project version: nn_v36
+
+
+Any help concerning learning rate, momentum, algorithm optimizaiton is appreciated.
 
 ---------------------------------------------------------------------------------------------------------------
 Thank You tbennun for the Code! Great Project!
