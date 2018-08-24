@@ -9,6 +9,8 @@ NOTE:
   (its applied  after the first dense (fully-connected) layer.  see: https://www.tensorflow.org/tutorials/estimators/cnn)
 - Nesterov Momentum was applied
 - based on http://cs231n.github.io/neural-networks-3/ Nesterov Momentum is implemented
+- Adam applied
+- based on http://cs231n.github.io/neural-networks-3/ Adam is implemented
 - tested on Win10PRO (v1607) 64bit CUDA 9.0 device driver: 398.36 VS2017 Community v15.5.6 (toolset v140 of VS2015)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
 - the CMAKE file, cudnn-training.sln and cudnn-training.vcxproj from forked repo do not work in VS2017 (since I don't use CMAKE, instead I created a new project in VS2017)
 - added CompileCU.bat (to compile lenet.cu with nvcc.exe using VS2015 cl.exe and CUDA 9.0 toolkit to an .obj file, which then is linked   to the project)
@@ -27,8 +29,8 @@ NOTE:
 - MT static run-time library linking
 - Optimization /O2 /Ot
 - results after adding the RElu activations: 
-   Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, iterations: 200000
-   Classification result: 0.91% error (used 10000 images)
+   Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, 
+   iterations: 200000 Classification result: 0.91% error (used 10000 images)
 - results after additionally adding DropOut Layer:
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32 DropOut Rate = 0.4;
    iterations: 500000 Classification result: 0.84% error (used 10000 images);
@@ -39,6 +41,11 @@ NOTE:
    LEARNING_RATE_POLICY_GAMMA 0.0001
    LEARNING_RATE_POLICY_POWER 0.75
    iterations: 100000 Classification result: 0.80% error (used 10000 images)
+- results after using Adam instead of  Nestorov Momentum:
+  Adam   LearningRate=0.001 Training dataset size: 60000, Test dataset size: 10000 Batch size: 64;
+  iterations: 1000 Classification result: 2.48% error (used 10000 images);
+  iterations: 10000 Classification result: 1.15% error (used 10000 images)
+  
 
 
 ---------------------------------------------------------------------------------------------------------------
