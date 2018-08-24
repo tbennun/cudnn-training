@@ -36,7 +36,7 @@ NOTE:
    iterations: 500000 Classification result: 0.84% error (used 10000 images);
    iterations: 200000 Classification result: 0.86% error (used 10000 images)
 - results after additionally adding Nestorov Momentum:
-   NesterovMomentumWeightUpdate Momentum=0.9 Learning Rate: 0.001
+   Momentum=0.9 Learning Rate: 0.001
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32,
    LEARNING_RATE_POLICY_GAMMA 0.0001
    LEARNING_RATE_POLICY_POWER 0.75
