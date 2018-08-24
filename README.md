@@ -72,7 +72,7 @@ Adam already has 1.15% classification error on only 10000 iterations.
 internal project version: nn_v36
 
 
-Any help concerning learning rate, momentum, algorithm optimizaiton is appreciated.
+Any help concerning learning rate, momentum, algorithm optimizaiton is appreciated. Please write me a message, if you found an error or have a suggestion for improvement.
 
 ---------------------------------------------------------------------------------------------------------------
 Thank You tbennun for the Code! Great Project!
