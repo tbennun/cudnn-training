@@ -65,14 +65,20 @@ NOTE:
       
 - results after using Adam instead of  Nesterov Momentum:
 
-  Adam   LearningRate=0.001 Training dataset size: 60000, Test dataset size: 10000 Batch size: 64;
+  Adam  Training dataset size: 60000, Test dataset size: 10000  Gamma=0.0001 Power=0.75
   
-  iterations: 1000 Classification result: 2.48% error (used 10000 images);
+  LearningRate=0.001,  Batch size: 64; iterations: 1000 Classification result: 2.48% error (used 10000 images);
   
-  iterations: 10000 Classification result: 1.15% error (used 10000 images)
+  LearningRate=0.001, Batch size: 64; iterations: 10000 Classification result: 1.15% error (used 10000 images)
   
-  iterations: 100000 Classification result: 0.99% error (used 10000 images)
+  LearningRate=0.001, Batch size: 64;   iterations: 100000 Classification result: 0.99% error (used 10000 images)
 
+
+  LEARNING_RATE_POLICY_GAMMA = 0.000010   LEARNING_RATE_POLICY_POWER = 0.580000     DropOut Rate = 0.100000  
+  
+  LearningRate=0.0001, iterations: 10000   Classification result: 0.89% error (used 10000 images)
+  
+  
   
 (NOTE: all the classification results are the yet best found results; they're no average of a series of tests)
 Nesterov on 100000 iterations was yet outperforming all other tests.  0.80% classification error
