@@ -84,7 +84,11 @@ void SavePGMFile(const unsigned char *data, size_t width, size_t height, const c
     FILE *fp = fopen(filename, "wb");
     if (fp)
     {
+#ifdef _WIN64	    
+        fprintf(fp, "P5\n%llu %llu\n255\n", width, height);
+#else
         fprintf(fp, "P5\n%lu %lu\n255\n", width, height);
+#endif	    
         fwrite(data, sizeof(unsigned char), width * height, fp);
         fclose(fp);
     }
@@ -356,14 +360,13 @@ __global__ void FillZeroes(float *vec, int size)
     vec[idx] = 0.0f;
 }
 
-__global__ void NesterovMomentumWeightUpdate(float *weights,  float *gradients, float *v, float learning_rate,  int size)
+__global__ void NesterovMomentumWeightUpdate(float *weights,  float *gradients, float *v, float learning_rate, float MomentumUpdate,  int size)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= size)
         return;
 
     float v_prev = v[idx];
-    const float MomentumUpdate = 0.9f;
     v[idx] = MomentumUpdate * v[idx] + learning_rate * gradients[idx];
                     // here + learning_rate (cause its already negated)
     weights[idx] += -MomentumUpdate * v_prev + (1.0f + MomentumUpdate) * v[idx];
@@ -1218,7 +1221,7 @@ int main(int argc, char **argv)
 #ifdef USE_DROPOUT_LAYER
     float dropRate = 0.4f;
     context.InitDropout(dropRate, FLAGS_batch_size, /*features: */ 1,  /* wid= */  fc1.outputs, /* hei: */  1);
-#endf    
+#endif    
     
     // Determine initial network structure
     bool bRet = true;
@@ -1526,7 +1529,7 @@ int main(int argc, char **argv)
             checkCudaErrors(cudaMemcpyAsync(d_data, &data[0], sizeof(float) * width * height, cudaMemcpyHostToDevice));
             
             // Forward propagate test image
-            testcontext.ForwardPropagation(d_data, d_conv1, d_conv1relu, d_pool1, d_conv2, d_conv2relu, d_pool2,  d_fc1, d_fc1relu, d_fc2, d_fc2smax, 
+            test_context.ForwardPropagation(d_data, d_conv1, d_conv1relu, d_pool1, d_conv2, d_conv2relu, d_pool2,  d_fc1, d_fc1relu, d_fc2, d_fc2smax, 
                                    d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                                    d_cudnn_workspace, d_onevec);
             
