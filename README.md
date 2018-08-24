@@ -9,7 +9,7 @@ NOTE:
   (its applied  after the first dense (fully-connected) layer.  see: https://www.tensorflow.org/tutorials/estimators/cnn)
 - Nesterov Momentum was applied
 - based on http://cs231n.github.io/neural-networks-3/ Nesterov Momentum is implemented
-- Adam applied  (best case: 0.80% classification error on only 10000 iterations (batchsize:128) reached)
+- Adam applied  (best case on MNIST dataset: 0.80% classification error on only 10000 iterations (batchsize:128) reached)
 - based on http://cs231n.github.io/neural-networks-3/ Adam is implemented
 - tested on Win10PRO (v1607) 64bit CUDA 9.0 (CUDNN 7) device driver: 398.36 VS2017 Community v15.5.6 (toolset v140 of VS2015)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
 - the CMAKE file, cudnn-training.sln and cudnn-training.vcxproj from forked repo do not work in VS2017 (since I don't use CMAKE, instead I created a new project in VS2017)
@@ -37,13 +37,13 @@ NOTE:
 - no pre-compiled headers
 - MT static run-time library linking
 - Optimization /O2 /Ot
-- results after adding the RElu activations: 
+- results after adding the RElu activations on MNIST dataset: 
 
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, 
    
    iterations: 200000 Classification result: 0.91% error (used 10000 images)   
    
-- results after additionally adding DropOut Layer:
+- results after additionally adding DropOut Layer on MNIST dataset:
 
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32 DropOut Rate = 0.4;
    
@@ -51,7 +51,7 @@ NOTE:
    
    iterations: 200000 Classification result: 0.86% error (used 10000 images)
    
-- results after additionally adding Nesterov Momentum:
+- results after additionally adding Nesterov Momentum on MNIST dataset:
 
    Momentum=0.9 Learning Rate: 0.001
    Training dataset size: 60000, Test dataset size: 10000,
@@ -63,9 +63,9 @@ NOTE:
   
    Batch size: 64   iterations: 10000 Classification result: 1.85% error (used 10000 images)   
       
-- results after using Adam instead of  Nesterov Momentum:
+- results after using Adam instead of  Nesterov Momentum on MNIST dataset:
 
-  Adam  Training dataset size: 60000, Test dataset size: 10000  Gamma=0.0001 Power=0.75  :
+  Adam  Training dataset size: 60000, Test dataset size: 10000  Gamma=0.0001 Power=0.75  : DropRate: 0.4
   
   LearningRate=0.001,  Batch size: 64; iterations: 1000 Classification result: 2.48% error (used 10000 images);
   
