@@ -48,6 +48,8 @@ NOTE:
   
 (NOTE: all the classification results are the yet best found results; they're no average of a series of tests)
 
+internal project version: nn_v36
+
 ---------------------------------------------------------------------------------------------------------------
 Thank You tbennun for the Code! Great Project!
 ---------------------------------------------------------------------------------------------------------------
