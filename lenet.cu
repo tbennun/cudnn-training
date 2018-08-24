@@ -1302,7 +1302,7 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMalloc(&d_pfc2bias,   sizeof(float) * fc2.pbias.size()));    
 
    
-    // Momentum "v" network parameters
+    // Momentum/Adam "v" network parameters
     float *d_vconv1=NULL, *d_vconv1bias=NULL, *d_vconv2=NULL, *d_vconv2bias=NULL;
     float *d_vfc1=NULL, *d_vfc1bias=NULL, *d_vfc2=NULL, *d_vfc2bias=NULL;
     
@@ -1329,7 +1329,7 @@ int main(int argc, char **argv)
         
 	
 	
-    // Momentum "m" network parameters
+    // Adam "m" network parameters
     float *d_mconv1=NULL, *d_mconv1bias=NULL, *d_mconv2=NULL, *d_mconv2bias=NULL;
     float *d_mfc1=NULL, *d_mfc1bias=NULL, *d_mfc2=NULL, *d_mfc2bias=NULL;	
 
