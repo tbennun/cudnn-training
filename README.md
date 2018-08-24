@@ -40,13 +40,22 @@ NOTE:
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32,
    LEARNING_RATE_POLICY_GAMMA 0.0001
    LEARNING_RATE_POLICY_POWER 0.75
-   iterations: 100000 Classification result: 0.80% error (used 10000 images)
+   DropOut Rate = 0.400000
+   iterations: 100000 Classification result: 0.80% error (used 10000 images);
+
+   Training dataset size: 60000, Test dataset size: 10000   Batch size: 64
+   iterations: 10000 Classification result: 1.85% error (used 10000 images)   
+      
 - results after using Adam instead of  Nestorov Momentum:
   Adam   LearningRate=0.001 Training dataset size: 60000, Test dataset size: 10000 Batch size: 64;
   iterations: 1000 Classification result: 2.48% error (used 10000 images);
   iterations: 10000 Classification result: 1.15% error (used 10000 images)
+  iterations: 100000 Classification result: 0.99% error (used 10000 images)
+
   
 (NOTE: all the classification results are the yet best found results; they're no average of a series of tests)
+Nesterov on 100000 iterations was yet outperforming all other tests.  0.80% classification error
+Adam already has 1.15% classification error on only 10000 iterations. 
 
 internal project version: nn_v36
 
