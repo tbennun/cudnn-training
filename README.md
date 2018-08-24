@@ -15,7 +15,7 @@ NOTE:
 - the CMAKE file, cudnn-training.sln and cudnn-training.vcxproj from forked repo do not work in VS2017 (since I don't use CMAKE, instead I created a new project in VS2017)
 - added CompileCU.bat (to compile lenet.cu with nvcc.exe using VS2015 cl.exe and CUDA 9.0 toolkit to an .obj file, which then is linked   to the project)
 - in the VS2017 project property settings  $(CUDA_PATH)\include needs to be added to the "Additional Include Directories"
-- all these dependencies were added in in Linker/Additional Dependencies:
+- all these dependencies were added in Linker/Additional Dependencies:
    cudnn\cudnn.lib
    cudnn\lenet.obj
    C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.0\lib\x64\cuda.lib
