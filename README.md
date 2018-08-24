@@ -30,7 +30,7 @@ NOTE:
 - Optimization /O2 /Ot
 - results after adding the RElu activations: 
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32, 
-   iterations: 200000 Classification result: 0.91% error (used 10000 images)
+   iterations: 200000 Classification result: 0.91% error (used 10000 images)   
 - results after additionally adding DropOut Layer:
    Training dataset size: 60000, Test dataset size: 10000 Batch size: 32 DropOut Rate = 0.4;
    iterations: 500000 Classification result: 0.84% error (used 10000 images);
@@ -46,7 +46,7 @@ NOTE:
   iterations: 1000 Classification result: 2.48% error (used 10000 images);
   iterations: 10000 Classification result: 1.15% error (used 10000 images)
   
-
+(NOTE: all the classification results are the yet best found results; they're no average of a series of tests)
 
 ---------------------------------------------------------------------------------------------------------------
 Thank You tbennun for the Code! Great Project!
