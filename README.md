@@ -45,17 +45,14 @@ NOTE:
 - results after additionally adding Nestorov Momentum:
 
    Momentum=0.9 Learning Rate: 0.001
-   Training dataset size: 60000, Test dataset size: 10000 Batch size: 32,
+   Training dataset size: 60000, Test dataset size: 10000,
    LEARNING_RATE_POLICY_GAMMA 0.0001
    LEARNING_RATE_POLICY_POWER 0.75
    DropOut Rate = 0.400000
    
-   iterations: 100000 Classification result: 0.80% error (used 10000 images);
-
-
-   Training dataset size: 60000, Test dataset size: 10000   Batch size: 64
-   
-   iterations: 10000 Classification result: 1.85% error (used 10000 images)   
+   Batch size: 32  iterations: 100000 Classification result: 0.80% error (used 10000 images);
+  
+   Batch size: 64   iterations: 10000 Classification result: 1.85% error (used 10000 images)   
       
 - results after using Adam instead of  Nestorov Momentum:
 
