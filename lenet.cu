@@ -145,8 +145,14 @@ DEFINE_string(train_labels, "train-labels.idx1-ubyte", "Training labels filename
 DEFINE_string(test_images, "t10k-images.idx3-ubyte", "Test images filename");
 DEFINE_string(test_labels, "t10k-labels.idx1-ubyte", "Test labels filename");
 
+#if defined(USE_NESTEROV_MOMENTUM) || defined (USE_ADAM)
+  #define LEARNING_RATE 0.001
+#else
+  #define LEARNING_RATE 0.01
+#endif
+
 // Solver parameters
-DEFINE_double(learning_rate, 0.01, "Base learning rate");
+DEFINE_double(learning_rate, LEARNING_RATE, "Base learning rate");
 DEFINE_double(lr_gamma, 0.0001, "Learning rate policy gamma");
 DEFINE_double(lr_power, 0.75, "Learning rate policy power");
 
