@@ -77,7 +77,7 @@ NOTE:
   Adam Training dataset size: 60000, Test dataset size: 10000 
   LEARNING_RATE_POLICY_GAMMA = 0.000010   LEARNING_RATE_POLICY_POWER = 0.580000     DropOut Rate = 0.100000  : 
   
-  LearningRate=0.0001, iterations: 10000   Classification result: 0.89% error (used 10000 images)
+  LearningRate=0.0001,  Batch size: 128; iterations: 10000   Classification result: 0.89% error (used 10000 images)
   
   
   
