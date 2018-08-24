@@ -14,8 +14,13 @@
 
 //#define CUDNN_MAJOR 7    // CUDA 9.0  cudnn64_7.dll
 
+// choose zero or one from the next two lines   (none= Standard SGD)
 #define USE_NESTEROV_MOMENTUM
+//#define USE_ADAM
+
+// comment the next line to use without dropout layer
 #define USE_DROPOUT_LAYER
+
 
 #include <cstdio>
 #include <cstdlib>
@@ -363,6 +368,7 @@ __global__ void NesterovMomentumWeightUpdate(float *weights,  float *gradients, 
                     // here + learning_rate (cause its already negated)
     weights[idx] += -MomentumUpdate * v_prev + (1.0f + MomentumUpdate) * v[idx];
 
+/*	
   #if 0  // TEST ONLY    SGD Momentum
     const float MomentumUpdate = 0.9f;
     v[idx] = MomentumUpdate * v[idx] + learning_rate * gradients[idx];
@@ -374,7 +380,31 @@ __global__ void NesterovMomentumWeightUpdate(float *weights,  float *gradients, 
     float  v0  = learning_rate * gradients[idx];
     weights[idx] += v0;
   #endif
+*/
 }
+#endif
+
+
+
+#ifdef USE_ADAM
+__global__ void AdamWeightUpdate(float *weights, float *gradients, float *v, float *m, float learning_rate, float beta1, float beta2, float beta1_t, float beta2_t,  int size)
+{
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= size)
+    return;
+
+  // Adam: http://cs231n.github.io/neural-networks-3/
+  float dx = gradients[idx];
+  m[idx] = beta1 * m[idx] + (1 - beta1) * dx;
+  float mt = m[idx] / (1 - beta1_t);
+  v[idx] = beta2 * v[idx] + (1 - beta2) * (dx * dx);
+  float vt = v[idx] / (1 - beta2_t);
+
+  const float eps = 1e-8;
+  weights[idx] += learning_rate * mt / (sqrt(vt) + eps);
+    // NOTE: learning_rate is already negated
+}
+
 #endif
 
 
@@ -414,6 +444,11 @@ struct TrainingContext
     {
         m_batchSize = batch_size;
 
+     #ifdef USE_ADAM
+        b1_t = b1; 
+        b2_t = b2; 	    
+     #endif	    
+	    
         // Create CUBLAS and CUDNN handles
         checkCudaErrors(cudaSetDevice(gpuid));
         checkCudaErrors(cublasCreate(&cublasHandle));
@@ -584,9 +619,9 @@ struct TrainingContext
 
 
 
-    UseDropOut = true; 
+    	    UseDropOut = true; 
 
-    return 0; // ok
+	    return 0; // ok
 	}
 
 
@@ -985,6 +1020,17 @@ struct TrainingContext
         // No need for convBackwardData because there are no more layers below
     }
 
+	
+	
+#ifdef USE_ADAM
+    // Adam
+    const float b1 = 0.9f;     // decay term
+    const float b2 = 0.999f; // decay term
+    float b1_t = 0.9f;        // decay term power t
+    float b2_t = 0.999f;    // decay term power t	
+#endif	
+	
+	
     void UpdateWeights(float learning_rate,
                        ConvBiasLayer& conv1, ConvBiasLayer& conv2,
                        float *pconv1, float *pconv1bias,
@@ -994,15 +1040,56 @@ struct TrainingContext
                        float *gconv1, float *gconv1bias,
                        float *gconv2, float *gconv2bias,
                        float *gfc1, float *gfc1bias,
-                       float *gfc2, float *gfc2bias,                      
+                       float *gfc2, float *gfc2bias,      
+		       
                        float *vconv1,  float *vconv1bias,
                        float *vconv2,   float *vconv2bias,
                        float *vfc1,        float *vfc1bias,
-                       float *vfc2,        float *vfc2bias)
+                       float *vfc2,        float *vfc2bias,
+		       
+		       float *mconv1,  float *mconv1bias,
+                       float *mconv2,   float *mconv2bias,
+                       float *mfc1,        float *mfc1bias,
+                       float *mfc2,        float *mfc2bias)
     {    
         float alpha = -learning_rate;
         
-#ifdef USE_NESTEROV_MOMENTUM
+#ifdef USE_ADAM
+
+       const int size_conv1 = static_cast<int>(conv1.pconv.size());
+       const int size_conv1bias = static_cast<int>(conv1.pbias.size());
+
+       const int size_conv2 = static_cast<int>(conv2.pconv.size());
+       const int size_conv2bias = static_cast<int>(conv2.pbias.size());
+
+       const int size_fc1 = static_cast<int>(ref_fc1.pneurons.size());
+       const int size_fc1bias = static_cast<int>(ref_fc1.pbias.size());
+
+       const int size_fc2 = static_cast<int>(ref_fc2.pneurons.size());
+       const int size_fc2bias = static_cast<int>(ref_fc2.pbias.size());
+	    
+         // Conv1
+         AdamWeightUpdate << <RoundUp(size_conv1, BW), BW >> > (pconv1, gconv1, vconv1, mconv1, alpha, b1, b2, b1_t, b2_t, size_conv1);
+         AdamWeightUpdate << <RoundUp(size_conv1bias, BW), BW >> > (pconv1bias, gconv1bias, vconv1bias, mconv1bias, alpha, b1, b2, b1_t, b2_t, size_conv1bias);
+
+         // Conv2
+         AdamWeightUpdate << <RoundUp(size_conv2, BW), BW >> > (pconv2, gconv2, vconv2, mconv2, alpha, b1, b2, b1_t, b2_t, size_conv2);
+         AdamWeightUpdate << <RoundUp(size_conv2bias, BW), BW >> > (pconv2bias, gconv2bias, vconv2bias, mconv2bias, alpha, b1, b2, b1_t, b2_t, size_conv2bias);
+
+         // Fully connected 1
+         AdamWeightUpdate << <RoundUp(size_fc1, BW), BW >> > (pfc1, gfc1, vfc1, mfc1, alpha, b1, b2, b1_t, b2_t, size_fc1);
+         AdamWeightUpdate << <RoundUp(size_fc1bias, BW), BW >> > (pfc1bias, gfc1bias, vfc1bias, mfc1bias, alpha, b1, b2, b1_t, b2_t, size_fc1bias);
+
+         // Fully connected 2
+         AdamWeightUpdate << <RoundUp(size_fc2, BW), BW >> > (pfc2, gfc2, vfc2, mfc2, alpha, b1, b2, b1_t, b2_t, size_fc2);
+         AdamWeightUpdate << <RoundUp(size_fc2bias, BW), BW >> > (pfc2bias, gfc2bias, vfc2bias, mfc2bias, alpha, b1, b2, b1_t, b2_t, size_fc2bias);
+
+                  
+         b1_t *= b1;
+         b2_t *= b2;	    
+	    
+#else	    
+ #ifdef USE_NESTEROV_MOMENTUM
         
        const float momentum = 0.9f;
         
@@ -1034,7 +1121,7 @@ struct TrainingContext
          NesterovMomentumWeightUpdate << <RoundUp(size_fc2, BW), BW >> > (pfc2, gfc2, vfc2, alpha, momentum, size_fc2);
          NesterovMomentumWeightUpdate << <RoundUp(size_fc2bias, BW), BW >> > (pfc2bias, gfc2bias, vfc2bias, alpha, momentum, size_fc2bias);
         
-#else        
+ #else        
         checkCudaErrors(cudaSetDevice(m_gpuid));
 
         // Conv1
@@ -1060,6 +1147,7 @@ struct TrainingContext
                                     &alpha, gfc2, 1, pfc2, 1));
         checkCudaErrors(cublasSaxpy(cublasHandle, static_cast<int>(ref_fc2.pbias.size()),
                                     &alpha, gfc2bias, 1, pfc2bias, 1));
+ #endif
 #endif        
     }
 };
@@ -1218,7 +1306,7 @@ int main(int argc, char **argv)
     float *d_vconv1=NULL, *d_vconv1bias=NULL, *d_vconv2=NULL, *d_vconv2bias=NULL;
     float *d_vfc1=NULL, *d_vfc1bias=NULL, *d_vfc2=NULL, *d_vfc2bias=NULL;
     
-#ifdef USE_NESTEROV_MOMENTUM
+#if defined(USE_NESTEROV_MOMENTUM) || defined(USE_ADAM)
       checkCudaErrors(cudaMalloc(&d_vconv1, sizeof(float) * conv1.pconv.size()));
       checkCudaErrors(cudaMalloc(&d_vconv1bias, sizeof(float) * conv1.pbias.size()));
       checkCudaErrors(cudaMalloc(&d_vconv2, sizeof(float) * conv2.pconv.size()));
@@ -1239,7 +1327,37 @@ int main(int argc, char **argv)
       FillZeroes<<<RoundUp(fc2.pbias.size(), BW), BW>>>(d_vfc2bias, fc2.pbias.size());
 #endif
         
-    
+	
+	
+    // Momentum "m" network parameters
+    float *d_mconv1=NULL, *d_mconv1bias=NULL, *d_mconv2=NULL, *d_mconv2bias=NULL;
+    float *d_mfc1=NULL, *d_mfc1bias=NULL, *d_mfc2=NULL, *d_mfc2bias=NULL;	
+
+#if defined(USE_ADAM)
+      checkCudaErrors(cudaMalloc(&d_mconv1, sizeof(float) * conv1.pconv.size()));
+      checkCudaErrors(cudaMalloc(&d_mconv1bias, sizeof(float) * conv1.pbias.size()));
+      checkCudaErrors(cudaMalloc(&d_mconv2, sizeof(float) * conv2.pconv.size()));
+      checkCudaErrors(cudaMalloc(&d_mconv2bias, sizeof(float) * conv2.pbias.size()));
+      checkCudaErrors(cudaMalloc(&d_mfc1, sizeof(float) * fc1.pneurons.size()));
+      checkCudaErrors(cudaMalloc(&d_mfc1bias, sizeof(float) * fc1.pbias.size()));
+      checkCudaErrors(cudaMalloc(&d_mfc2, sizeof(float) * fc2.pneurons.size()));
+      checkCudaErrors(cudaMalloc(&d_mfc2bias, sizeof(float) * fc2.pbias.size()));
+
+      // in the first few time steps the vectors m,v are both initialized and therefore biased at zero, 
+      // before they fully “warm up”. 
+
+      FillZeroes<<<RoundUp(conv1.pconv.size(), BW), BW>>>(d_mconv1, conv1.pconv.size());
+      FillZeroes<<<RoundUp(conv1.pbias.size(), BW), BW>>>(d_mconv1bias, conv1.pbias.size());
+      FillZeroes<<<RoundUp(conv2.pconv.size(), BW), BW>>>(d_mconv2, conv2.pconv.size());
+      FillZeroes<<<RoundUp(conv2.pbias.size(), BW), BW>>>(d_mconv2bias, conv2.pbias.size());
+
+      FillZeroes<<<RoundUp(fc1.pneurons.size(), BW), BW>>>(d_mfc1, fc1.pneurons.size());
+      FillZeroes<<<RoundUp(fc1.pbias.size(), BW), BW>>>(d_mfc1bias, fc1.pbias.size());
+      FillZeroes<<<RoundUp(fc2.pneurons.size(), BW), BW>>>(d_mfc2, fc2.pneurons.size());
+      FillZeroes<<<RoundUp(fc2.pbias.size(), BW), BW>>>(d_mfc2bias, fc2.pbias.size());	
+#endif
+	
+	
     
     // Network parameter gradients
     float *d_gconv1, *d_gconv1bias, *d_gconv2, *d_gconv2bias;
@@ -1341,10 +1459,16 @@ int main(int argc, char **argv)
         context.UpdateWeights(learningRate, conv1, conv2,
                               d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                               d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias,
-                             d_vconv1,  d_vconv1bias,
-                             d_vconv2,   d_vconv2bias,
+			      
+                             d_vconv1,      d_vconv1bias,
+                             d_vconv2,      d_vconv2bias,
                              d_vfc1,        d_vfc1bias,
-                             d_vfc2,        d_vfc2bias );
+                             d_vfc2,        d_vfc2bias,
+			      
+                             d_mconv1,      d_mconv1bias, 
+                             d_mconv2,      d_mconv2bias,
+                             d_mfc1,        d_mfc1bias,
+                             d_mfc2,        d_mfc2bias);
     }
     checkCudaErrors(cudaDeviceSynchronize());
     auto t2 = std::chrono::high_resolution_clock::now();
@@ -1466,7 +1590,7 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_dfc2));
     
     
-#ifdef USE_NESTEROV_MOMENTUM
+#if defined(USE_NESTEROV_MOMENTUM) || defined(USE_ADAM)
       checkCudaErrors(cudaFree(d_vconv1));
       checkCudaErrors(cudaFree(d_vconv1bias));
       checkCudaErrors(cudaFree(d_vconv2));
@@ -1476,6 +1600,17 @@ int main(int argc, char **argv)
       checkCudaErrors(cudaFree(d_vfc2));
       checkCudaErrors(cudaFree(d_vfc2bias));    
 #endif    
+	
+#if defined(USE_ADAM)
+      checkCudaErrors(cudaFree(d_mconv1));
+      checkCudaErrors(cudaFree(d_mconv1bias));
+      checkCudaErrors(cudaFree(d_mconv2));
+      checkCudaErrors(cudaFree(d_mconv2bias));
+      checkCudaErrors(cudaFree(d_mfc1));
+      checkCudaErrors(cudaFree(d_mfc1bias));
+      checkCudaErrors(cudaFree(d_mfc2));
+      checkCudaErrors(cudaFree(d_mfc2bias));
+#endif
     
     checkCudaErrors(cudaFree(d_dpool1));
     checkCudaErrors(cudaFree(d_dconv2));
