@@ -42,7 +42,7 @@ NOTE:
    
    iterations: 200000 Classification result: 0.86% error (used 10000 images)
    
-- results after additionally adding Nestorov Momentum:
+- results after additionally adding Nesterov Momentum:
 
    Momentum=0.9 Learning Rate: 0.001
    Training dataset size: 60000, Test dataset size: 10000,
@@ -54,7 +54,7 @@ NOTE:
   
    Batch size: 64   iterations: 10000 Classification result: 1.85% error (used 10000 images)   
       
-- results after using Adam instead of  Nestorov Momentum:
+- results after using Adam instead of  Nesterov Momentum:
 
   Adam   LearningRate=0.001 Training dataset size: 60000, Test dataset size: 10000 Batch size: 64;
   
