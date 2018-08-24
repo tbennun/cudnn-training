@@ -7,9 +7,9 @@ NOTE:
 - a DropOut Layer was applied
 - DropOut is based on https://devtalk.nvidia.com/default/topic/1028240/cudnn/how-to-implement-a-dropout-layer-using-cudnn-/
   (its applied  after the first dense (fully-connected) layer.  see: https://www.tensorflow.org/tutorials/estimators/cnn)
-- Nesterov Momentum was applied
+- Nesterov Momentum was applied  (best result on MNIST dataset: 0.80% classification error on 100000 iterations (batchsize: 32)
 - based on http://cs231n.github.io/neural-networks-3/ Nesterov Momentum is implemented
-- Adam applied  (best case on MNIST dataset: 0.80% classification error on only 10000 iterations (batchsize:128) reached)
+- Adam applied  (best result on MNIST dataset: 0.80% classification error on only 10000 iterations (batchsize:128) reached)
 - based on http://cs231n.github.io/neural-networks-3/ Adam is implemented
 - tested on Win10PRO (v1607) 64bit CUDA 9.0 (CUDNN 7) device driver: 398.36 VS2017 Community v15.5.6 (toolset v140 of VS2015)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
 - the CMAKE file, cudnn-training.sln and cudnn-training.vcxproj from forked repo do not work in VS2017 (since I don't use CMAKE, instead I created a new project in VS2017)
