@@ -9,7 +9,7 @@ NOTE:
   (its applied  after the first dense (fully-connected) layer.  see: https://www.tensorflow.org/tutorials/estimators/cnn)
 - Nesterov Momentum was applied
 - based on http://cs231n.github.io/neural-networks-3/ Nesterov Momentum is implemented
-- Adam applied
+- Adam applied  (best case: 0.80% classification error on only 10000 iterations (batchsize:128) reached)
 - based on http://cs231n.github.io/neural-networks-3/ Adam is implemented
 - tested on Win10PRO (v1607) 64bit CUDA 9.0 (CUDNN 7) device driver: 398.36 VS2017 Community v15.5.6 (toolset v140 of VS2015)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
 - the CMAKE file, cudnn-training.sln and cudnn-training.vcxproj from forked repo do not work in VS2017 (since I don't use CMAKE, instead I created a new project in VS2017)
@@ -87,7 +87,7 @@ NOTE:
 
     
 (NOTE: all the classification results are the yet best found results; they're no average of a series of tests)
-Nesterov on 100000 iterations was yet outperforming all other tests.  0.80% classification error
+Nesterov on 100000 iterations was yet outperforming all other tests.  0.80% classification error.
 With Adam already 0.80% classification error on only 10000 iterations reached! 
 
 internal project version: nn_v36
