@@ -2,8 +2,10 @@
 
 // Disclaimer: No Warranty. Use at your own risk.  (See License Information in Root)
 
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // GPU Kernels
+
 
 // from https://github.com/tbennun/cudnn-training
 /**
@@ -31,6 +33,7 @@ __global__ void FillZeroes(float *vec, int size)
 
     vec[idx] = 0.0f;
 }
+
 
 
 // from https://github.com/tbennun/cudnn-training
