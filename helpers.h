@@ -101,7 +101,11 @@ void SavePGMFile(const unsigned char *data, size_t width, size_t height, const c
 
 
 
-int  UpdateGlobalParameters(int flags)
+int __forceinline UpdateGlobalParameters(unsigned long long batchSize, unsigned long long userBW, unsigned int iterations, double LearningRate, 
+                                        double LearningRatePolicyGamma, double LearningRatePolicyPower,
+                                        double DecayScheduleDrop, double DecayScheduleEpochsDrop,
+                                        double expDecayK,
+                                        double Momentum,  double DropRate,  int flags)
 {
 
   // flags bit 0: set=Use Adam
@@ -170,5 +174,5 @@ int  UpdateGlobalParameters(int flags)
 
     ExponentialDecayK = expDecayK;
 
+    return 0;
 }
-
