@@ -1,6 +1,6 @@
 #pragma once
 
-// Disclaimer: No Warranty. Use at your own risk.  (See License Information in Root)
+// Disclaimer: No Warranty. Use at your own risk.  
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -81,7 +81,6 @@ static inline unsigned int RoundUp(unsigned int nominator, unsigned int denomina
 
 
 #ifdef ALLOW_SAVE_AS_PGM_FILE
-// from https://github.com/tbennun/cudnn-training
 /**
  * Saves a PGM grayscale image out of unsigned 8-bit data
  */
