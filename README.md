@@ -9,7 +9,8 @@ NOTE:
   (its applied  after the first dense (fully-connected) layer.  see: https://www.tensorflow.org/tutorials/estimators/cnn)
 - Nesterov Momentum was applied  (best result on MNIST dataset: 0.80% classification error on 100000 iterations (batchsize: 32)
 - based on http://cs231n.github.io/neural-networks-3/ Nesterov Momentum is implemented
-- Adam applied  (best result on MNIST dataset: 0.80% classification error on only 10000 iterations (batchsize:128) reached)
+- Adam applied  (best result on MNIST dataset: 0.80% classification error on only 10000 iterations (batchsize:128) reached; 
+  best result on 1000 iterations (batchsize 64) classifcation error: 1.58% using a scheduled learning rate)
 - based on http://cs231n.github.io/neural-networks-3/ Adam is implemented
 - tested on Win10PRO (v1607) 64bit CUDA 9.0 (CUDNN 7) device driver: 398.36 VS2017 Community v15.5.6 (toolset v140 of VS2015)  using cudnn64_7.dll, cublas64_90.dll, cudart64_90.dll
 - the CMAKE file, cudnn-training.sln and cudnn-training.vcxproj from forked repo do not work in VS2017 (since I don't use CMAKE, instead I created a new project in VS2017)
@@ -84,6 +85,14 @@ NOTE:
   LEARNING_RATE_POLICY_GAMMA = 0.000010  LEARNING_RATE_POLICY_POWER = 0.580000   DropOut Rate = 0.050000  : 
 
   LearningRate = 0.000100; Batch size: 128; iterations: 10000; Classification result: 0.80% error (used 10000 images)
+
+- results after using Adam with a scheduled learning rate:
+
+  Training dataset size: 60000, Test dataset size: 10000   Batch size: 64
+
+  LEARNING_RATE = 0.001000  StepDecayScheduleDrop = 0.560000 StepDecayScheduleEpochsDrop = 250.000000 no DropOutLayer
+  
+  iterations: 1000 Classification result: 1.58% error (used 10000 images)
 
     
 (NOTE: all the classification results are the yet best found results; they're no average of a series of tests; they used all different time-based seeds)
