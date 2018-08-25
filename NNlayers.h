@@ -1,13 +1,13 @@
 #pragma once
 
-// Disclaimer: No Warranty. Use at your own risk.  (See License Information in Root)
+// Disclaimer: No Warranty. Use at your own risk.  
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Layer representations
 
 
-// from https://github.com/tbennun/cudnn-training
+
 // Represents a convolutional layer with bias.
 struct ConvBiasLayer
 {
@@ -87,7 +87,6 @@ struct ConvBiasLayer
 
 
 
-// from https://github.com/tbennun/cudnn-training
 // Represents a max-pooling layer.
 struct MaxPoolLayer
 {
@@ -97,7 +96,7 @@ struct MaxPoolLayer
 
 
 
-// from https://github.com/tbennun/cudnn-training
+
 // Represents a fully-connected neural network layer with bias.
 struct FullyConnectedLayer
 {
