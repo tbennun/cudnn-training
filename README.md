@@ -1,4 +1,4 @@
-This is a refactored version suggestion of the cudnn-training project https://github.com/tbennun/cudnn-training: 
+This is a refactored version suggestion of the cudnn-training project https://github.com/tbennun/cudnn-training
 
 instead of having all structs/helpers/... in one .cu file
 some additional .h files are added. (for a clearer appearance)
