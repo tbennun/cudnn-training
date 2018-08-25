@@ -137,11 +137,136 @@ DEFINE_string(test_labels, "t10k-labels.idx1-ubyte", "Test labels filename");
 
 int main(int argc, char **argv)
 {
+	
+  int flags = 8;  // select Nadam  (YET FOR TEST)
 
-    size_t width, height, channels = 1;
+  // flags bit 0: set=Use Adam
+  // flags bit 1: set=Use Adamax
+  // flags bit 2: set=Use Nadam
+  // flags bit 3: set=Use Nadamax 
+  // flags bit 8: set=constant learning rate (clear= default: decaying as ~1/T)
+  if (flags & 1)  Adam = true; else Adam = false;
+  if (flags & 2)  Adamax = true; else Adamax = false;
+  if (flags & 4)  Nadam = true; else Nadam = false;
+  if (flags & 8)  Nadamax = true; else Nadamax = false;
+  if (flags & 256)  ConstantLearningRate = true; else ConstantLearningRate = false;
+  
+  if (Adamax) Adam = true;  // all basics are required on both Adam and Adamax
+  if (Nadam || Nadamax)
+  {
+    Adam = true;  // all basics are required on both Adam and Adamax
+    if (FLAGS_momentum == 0.0)  { Nadam = false;  Nadamax = false;} // fall-through to basic Adam if no momentum value present
+  }
+    
+
+  if (batchSize)
+  {
+    FLAGS_batch_size = batchSize;
+    BW = batchSize * 2;
+  }
+  else
+  {
+    FLAGS_batch_size = BATCH_SIZE;
+    BW = defaultBW;
+  };
+
+  if (userBW)
+    BW = userBW;
+
+  if (iterations)
+    FLAGS_iterations = iterations;
+  else
+    FLAGS_iterations = ITERATIONS;
+
+  if (LearningRate != 0.0f)
+    FLAGS_learning_rate = LearningRate;
+  else
+    FLAGS_learning_rate = LEARNING_RATE;
+
+
+  if (LearningRatePolicyGamma)
+     FLAGS_lr_gamma = LearningRatePolicyGamma;
+  else
+     FLAGS_lr_gamma = LEARNING_RATE_POLICY_GAMMA;
+
+  if (LearningRatePolicyPower)
+    FLAGS_lr_power = LearningRatePolicyPower;
+  else
+    FLAGS_lr_power = LEARNING_RATE_POLICY_POWER;
+
+
+    FLAGS_momentum = Momentum;   // 0.0 here means: simply use pure SDG
+    FLAGS_drop_rate = DropRate;  // 0.0 here means: simply avoid DropOut Layer
+
+    StepDecayScheduleDrop = DecayScheduleDrop; //  0.5; //  0.0=OFF
+    StepDecayScheduleEpochsDrop = DecayScheduleEpochsDrop;  // 250.0f;
+
+    ExponentialDecayK = expDecayK;
+
+
+   size_t width, height, channels = 1;
 
     // Open input data
     printf("Reading input data\n");
+
+    printf("LEARNING_RATE = %f\n", FLAGS_learning_rate);
+    
+    if (ConstantLearningRate)
+    {
+    printf("Constant Learning Rate \n");
+    }
+    else if (ExponentialDecayK != 0.0)
+    {
+      printf("ExponentialDecayK = %f\n", ExponentialDecayK);
+    }
+    else if (StepDecayScheduleDrop != 0.0)
+    {
+      printf("StepDecayScheduleDrop = %f\n", StepDecayScheduleDrop);
+      printf("StepDecayScheduleEpochsDrop = %f\n", StepDecayScheduleEpochsDrop);
+    }
+    else
+    {
+      printf("LEARNING_RATE_POLICY_GAMMA = %f\n", FLAGS_lr_gamma);
+      printf("LEARNING_RATE_POLICY_POWER = %f\n", FLAGS_lr_power);
+      printf("learning rate decaying as ~1/T\n");
+    }
+    if (Nadamax)
+    {
+        printf("use Nadamax\n");
+        printf("momentum = %f\n", FLAGS_momentum);
+    }
+    else if (Nadam)
+    {
+        printf("use Nadam\n");
+        printf("momentum = %f\n", FLAGS_momentum);
+    }
+    else if (Adamax)
+    {
+        printf("use Adamax\n");
+    }
+    else if (Adam)
+    {
+        printf("use Adam\n");
+    }
+    else
+    {
+      if (FLAGS_momentum == 0.0)
+        printf("no momentum; use pure SGD\n");
+      else
+        printf("momentum = %f\n", FLAGS_momentum);
+    }
+
+    if (FLAGS_drop_rate == 0.0)
+      printf("no DropOutLayer\n");
+    else
+      printf("DropOut Rate = %f\n", FLAGS_drop_rate);
+
+
+
+    
+
+	
+	
     
     // Read dataset sizes
     size_t train_size = ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), nullptr, nullptr, width, height);
