@@ -1,3 +1,6 @@
+any further updates will be made in this branch  https://github.com/3DdeepAI/3DdeepAI/tree/3DdeepAI
+there I will completely refactor this sample (as I already did in my VS2017 project)
+
 NOTE:
 =====
 
