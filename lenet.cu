@@ -53,68 +53,11 @@ int main(int argc, char **argv)
 
    size_t width, height, channels = 1;
 
-    // Open input data
+   ShowGlobalParameterSettings();
+
+	
+        
     printf("Reading input data\n");
-
-    printf("LEARNING_RATE = %f\n", FLAGS_learning_rate);
-    
-    if (ConstantLearningRate)
-    {
-    printf("Constant Learning Rate \n");
-    }
-    else if (ExponentialDecayK != 0.0)
-    {
-      printf("ExponentialDecayK = %f\n", ExponentialDecayK);
-    }
-    else if (StepDecayScheduleDrop != 0.0)
-    {
-      printf("StepDecayScheduleDrop = %f\n", StepDecayScheduleDrop);
-      printf("StepDecayScheduleEpochsDrop = %f\n", StepDecayScheduleEpochsDrop);
-    }
-    else
-    {
-      printf("LEARNING_RATE_POLICY_GAMMA = %f\n", FLAGS_lr_gamma);
-      printf("LEARNING_RATE_POLICY_POWER = %f\n", FLAGS_lr_power);
-      printf("learning rate decaying as ~1/T\n");
-    }
-    if (Nadamax)
-    {
-        printf("use Nadamax\n");
-        printf("momentum = %f\n", FLAGS_momentum);
-    }
-    else if (Nadam)
-    {
-        printf("use Nadam\n");
-        printf("momentum = %f\n", FLAGS_momentum);
-    }
-    else if (Adamax)
-    {
-        printf("use Adamax\n");
-    }
-    else if (Adam)
-    {
-        printf("use Adam\n");
-    }
-    else
-    {
-      if (FLAGS_momentum == 0.0)
-        printf("no momentum; use pure SGD\n");
-      else
-        printf("momentum = %f\n", FLAGS_momentum);
-    }
-
-    if (FLAGS_drop_rate == 0.0)
-      printf("no DropOutLayer\n");
-    else
-      printf("DropOut Rate = %f\n", FLAGS_drop_rate);
-
-
-
-    
-
-	
-	
-    
     // Read dataset sizes
     size_t train_size = ReadUByteDataset(FLAGS_train_images.c_str(), FLAGS_train_labels.c_str(), nullptr, nullptr, width, height);
     size_t test_size = ReadUByteDataset(FLAGS_test_images.c_str(), FLAGS_test_labels.c_str(), nullptr, nullptr, width, height);
