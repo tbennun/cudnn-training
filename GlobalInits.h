@@ -119,7 +119,7 @@ PolicyStep LearningRatePolicy[MAX_POLICY_STEPS] =
 
 double ExponentialDecayK = 0.001f; 
 
-double StepDecayScheduleDrop = 0.5; //  0.0=OFF
+double StepDecayScheduleDrop = 0.56; //  0.0=OFF
 double StepDecayScheduleEpochsDrop = 250.0f;
 
 // Batch parameters
