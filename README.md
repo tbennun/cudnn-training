@@ -8,7 +8,8 @@ NOTE:
 - based on http://cs231n.github.io/neural-networks-1/ the RElu activation is done after the convolution bias was applied
 
 - Adam applied  (best result on MNIST dataset: 0.80% classification error on only 10000 iterations (batchsize:128) reached; 
-  best result on MNIST dataset 1000 iterations (batchsize 64) classifcation error: 1.58% using a scheduled learning rate)
+
+- best result on MNIST dataset 1000 iterations (batchsize 64) classifcation error: 1.51% using Nadam + scheduled learning rate)
   
 - based on http://cs231n.github.io/neural-networks-3/ Adam is implemented
 
@@ -69,7 +70,7 @@ NOTE:
    Training dataset size: 60000, Test dataset size: 10000,
    LEARNING_RATE_POLICY_GAMMA 0.0001
    LEARNING_RATE_POLICY_POWER 0.75
-   DropOut Rate = 0.400000
+   DropOut Rate = 0.4
    
    Batch size: 32  iterations: 100000 Classification result: 0.80% error (used 10000 images);
   
@@ -87,28 +88,35 @@ NOTE:
 
 
   Adam Training dataset size: 60000, Test dataset size: 10000 
-  LEARNING_RATE_POLICY_GAMMA = 0.000010   LEARNING_RATE_POLICY_POWER = 0.580000     DropOut Rate = 0.100000  : 
+  LEARNING_RATE_POLICY_GAMMA = 0.00001   LEARNING_RATE_POLICY_POWER = 0.58     DropOut Rate = 0.1  : 
   
   LearningRate=0.0001,  Batch size: 128; iterations: 10000   Classification result: 0.89% error (used 10000 images)
   
   
   Adam Training dataset size: 60000, Test dataset size: 10000  
-  LEARNING_RATE_POLICY_GAMMA = 0.000010  LEARNING_RATE_POLICY_POWER = 0.580000   DropOut Rate = 0.050000  : 
+  LEARNING_RATE_POLICY_GAMMA = 0.00001  LEARNING_RATE_POLICY_POWER = 0.58   DropOut Rate = 0.05  : 
 
-  LearningRate = 0.000100; Batch size: 128; iterations: 10000; Classification result: 0.80% error (used 10000 images)
+  LearningRate = 0.0001; Batch size: 128; iterations: 10000; Classification result: 0.80% error (used 10000 images)
 
 - results after using Adam with a scheduled learning rate:
 
   Training dataset size: 60000, Test dataset size: 10000   Batch size: 64
 
-  LEARNING_RATE = 0.001000  StepDecayScheduleDrop = 0.560000 StepDecayScheduleEpochsDrop = 250.000000 no DropOutLayer
+  LEARNING_RATE = 0.001  StepDecayScheduleDrop = 0.56 StepDecayScheduleEpochsDrop = 250.0 no DropOutLayer
   
   iterations: 1000 Classification result: 1.58% error (used 10000 images)
+
+- results after using Nadam (Adam + Nesterov Momentum):  [not implemented in the repo here yet]
+  LEARNING_RATE = 0.001 StepDecayScheduleDrop = 0.56 StepDecayScheduleEpochsDrop = 250.0
+  momentum = 0.95 no DropOutLayer
+  Training dataset size: 60000, Test dataset size: 10000   Batch size: 64
+  iterations: 1000 Classification result: 1.51% error (used 10000 images)
+
 
     
 (NOTE: all the classification results are the yet best found results; they're no average of a series of tests; they used all different time-based seeds)
 With Adam already 0.80% classification error on only 10000 iterations (batch size:128) reached! 
-And Adam + scheduled learning rate reaches 1.58% classification error on only 1000 iterations (batch size:64) !!!
+And Nadam + scheduled learning rate reaches 1.51% classification error on only 1000 iterations (batch size:64) !!!
 
 internal project version: nn_v36
 
