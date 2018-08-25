@@ -118,7 +118,7 @@ NOTE:
 With Adam already 0.80% classification error on only 10000 iterations (batch size:128) reached! 
 And Nadam + scheduled learning rate reaches 1.51% classification error on only 1000 iterations (batch size:64) !!!
 
-internal project version: nn_v36
+internal project version: nn_v36 (applied in repo)
 
 
 Any help concerning learning rate, momentum, algorithm optimizaiton is appreciated. Please write me a message, if you found an error or have a suggestion for improvement.
