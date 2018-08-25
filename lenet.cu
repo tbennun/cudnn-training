@@ -15,39 +15,36 @@
 #define USE_SCHEDULED_LEARNING_RATE
 
 
-#include <cstdio>
-#include <cstdlib>
-#include <cmath>
-#include <ctime>
-#include <cfloat>
 
-#include <algorithm>
-#include <chrono>
-#include <iomanip>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <random>
-#include <sstream>
-#include <string>
-#include <vector>
-
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-
-#include <cublas_v2.h>
-#include <cudnn.h>
-
-#include "readubyte.h"
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// Definitions and helper utilities
-
-// Block width for CUDA kernels
-#define BW 128
+// =========================================================================================================
+// SWITCHES:
 
 
-    // Constant versions of gflags
+//#define ALLOW_SAVE_AS_PGM_FILE
+
+
+// =========================================================================================================
+// Definitions 
+
+
+#define BATCH_SIZE  64 // 32 // 256 // 4096  // ORG=64
+// BW = Block width for CUDA kernels
+#define defaultBW  (BATCH_SIZE  * 2)      // 128
+#define ITERATIONS   1000
+#define LEARNING_RATE 0.001 //  ORG=0.01
+#define LEARNING_RATE_POLICY_GAMMA 0.0001 // 0.00001    // 0.000001 // ORG: 0.0001
+#define LEARNING_RATE_POLICY_POWER   0.85 // 0.8 // 0.31 // 0.51 // 0.2 // 0.69  // 0.75  // ORG: 0.75
+// Adam:
+#define BETA1 0.9f     // ORG: 0.9f
+#define BETA2 0.999f // ORG:  0.999f
+
+
+#define DROP_RATE 0.0 // 0.001 // 0.4      0.0=OFF
+#define MOMENTUM 0.9  // 0.0=OFF
+
+
+
+    // Constant versions of gflags (from https://github.com/tbennun/cudnn-training)
     #define DEFINE_int32(flag, default_value, description) const int FLAGS_##flag = (default_value)
     #define DEFINE_uint64(flag, default_value, description) const unsigned long long FLAGS_##flag = (default_value)
     #define DEFINE_bool(flag, default_value, description) const bool FLAGS_##flag = (default_value)
@@ -55,96 +52,65 @@
     #define DEFINE_string(flag, default_value, description) const std::string FLAGS_##flag ((default_value))
 
 
-/**
- * Computes ceil(x / y) for integral nonnegative values.
- */
-static inline unsigned int RoundUp(unsigned int nominator, unsigned int denominator)
-{
-    return (nominator + denominator - 1) / denominator;
-}
 
 
 
-// from https://github.com/tbennun/cudnn-training
-/**
- * Saves a PGM grayscale image out of unsigned 8-bit data
- */
-void SavePGMFile(const unsigned char *data, size_t width, size_t height, const char *filename)
-{
-    FILE *fp = fopen(filename, "wb");
-    if (fp)
-    {
-#ifdef _WIN64	    
-        fprintf(fp, "P5\n%llu %llu\n255\n", width, height);
-#else
-        fprintf(fp, "P5\n%lu %lu\n255\n", width, height);
-#endif	    
-        fwrite(data, sizeof(unsigned char), width * height, fp);
-        fclose(fp);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// Error handling
-// Adapted from the CUDNN classification code 
-// sample: https://developer.nvidia.com/cuDNN
-
-#define FatalError(s) do {                                             \
-    std::stringstream _where, _message;                                \
-    _where << __FILE__ << ':' << __LINE__;                             \
-    _message << std::string(s) + "\n" << __FILE__ << ':' << __LINE__;  \
-    std::cerr << _message.str() << "\nAborting...\n";                  \
-    cudaDeviceReset();                                                 \
-    exit(1);                                                           \
-} while(0)
-
-#define checkCUDNN(status) do {                                        \
-    std::stringstream _error;                                          \
-    if (status != CUDNN_STATUS_SUCCESS) {                              \
-      _error << "CUDNN failure: " << cudnnGetErrorString(status);      \
-      FatalError(_error.str());                                        \
-    }                                                                  \
-} while(0)
-
-#define checkCudaErrors(status) do {                                   \
-    std::stringstream _error;                                          \
-    if (status != 0) {                                                 \
-      _error << "Cuda failure: " << status;                            \
-      FatalError(_error.str());                                        \
-    }                                                                  \
-} while(0)
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Command-line flags
 
+
 // Application parameters
 DEFINE_int32(gpu, 0, "The GPU ID to use");
-DEFINE_int32(iterations, 1000, "Number of iterations for training");
+//DEFINE_int32(iterations, 1000, "Number of iterations for training"); // 7.8% Error rate (on classification)
+//DEFINE_int32(iterations, ITERATIONS, "Number of iterations for training");
 DEFINE_int32(random_seed, -1, "Override random seed (default uses std::random_device)");
 DEFINE_int32(classify, -1, "Number of images to classify to compute error rate (default uses entire test set)");
 
-// Batch parameters
-DEFINE_uint64(batch_size, 64, "Batch size for training");
+unsigned long long FLAGS_batch_size = BATCH_SIZE;
+unsigned long long BW = defaultBW; // BATCH_SIZE * 2;
+int FLAGS_iterations = ITERATIONS;
+double FLAGS_learning_rate = LEARNING_RATE; 
+double FLAGS_lr_gamma = LEARNING_RATE_POLICY_GAMMA;
+double FLAGS_lr_power = LEARNING_RATE_POLICY_POWER;
+double FLAGS_momentum = MOMENTUM;
+double FLAGS_drop_rate = DROP_RATE;
 
-// Filenames
+bool Adam = false;
+float Beta1 = BETA1; //  0.9f;     // decay term
+float Beta2 = BETA2; // 0.999f; // decay term
+
+bool Adamax = false;
+bool Nadam = false;
+bool Nadamax = false;
+
+bool ConstantLearningRate = false;
+
+
+double ExponentialDecayK = 0.001f; 
+
+double StepDecayScheduleDrop = 0.5; //  0.0=OFF
+double StepDecayScheduleEpochsDrop = 250.0f;
+
 DEFINE_bool(pretrained, false, "Use the pretrained CUDNN model as input");
 DEFINE_bool(save_data, false, "Save pretrained weights to file");
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// helper utilities
+
+#include "helpers.h"
+#include "readubyte.h"
+
+
+
+// Filenames
 DEFINE_string(train_images, "train-images.idx3-ubyte", "Training images filename");
 DEFINE_string(train_labels, "train-labels.idx1-ubyte", "Training labels filename");
 DEFINE_string(test_images, "t10k-images.idx3-ubyte", "Test images filename");
 DEFINE_string(test_labels, "t10k-labels.idx1-ubyte", "Test labels filename");
-
-#if defined(USE_NESTEROV_MOMENTUM) || defined (USE_ADAM)
-  #define LEARNING_RATE 0.001
-#else
-  #define LEARNING_RATE 0.01
-#endif
-
-// Solver parameters
-DEFINE_double(learning_rate, LEARNING_RATE, "Base learning rate");
-DEFINE_double(lr_gamma, 0.0001, "Learning rate policy gamma");
-DEFINE_double(lr_power, 0.75, "Learning rate policy power");
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -159,6 +125,14 @@ DEFINE_double(lr_power, 0.75, "Learning rate policy power");
 #include "NNkernels.h"
 
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// CUDNN/CUBLAS training context
+
+
+#include "NNcontext.h"
+
+n/a
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // CUDNN/CUBLAS training context
