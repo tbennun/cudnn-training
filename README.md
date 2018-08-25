@@ -108,6 +108,7 @@ NOTE:
     
 (NOTE: all the classification results are the yet best found results; they're no average of a series of tests; they used all different time-based seeds)
 With Adam already 0.80% classification error on only 10000 iterations (batch size:128) reached! 
+And Adam + scheduled learning rate reaches 1.58% classification error on only 1000 iterations (batch size:64) !!!
 
 internal project version: nn_v36
 
