@@ -1,6 +1,7 @@
 This is a refactored version of the cudnn-training project. 
 instead of having all structs/helpers/... in one .cu file
 some additional .h files are added. (for a clearer appearance)
+
 All further updates will be done in https://github.com/3DdeepAI/3DdeepAI/tree/3DdeepAI And not in this branch.
 
 NOTE:
