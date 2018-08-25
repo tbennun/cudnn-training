@@ -1,13 +1,13 @@
 #pragma once
 
-// Disclaimer: No Warranty. Use at your own risk.  (See License Information in Root)
+// Disclaimer: No Warranty. Use at your own risk.  
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // GPU Kernels
 
 
-// from https://github.com/tbennun/cudnn-training
+
 /**
  * Fills a floating-point array with ones.
  *
@@ -36,7 +36,7 @@ __global__ void FillZeroes(float *vec, int size)
 
 
 
-// from https://github.com/tbennun/cudnn-training
+
 /**
  * Computes the backpropagation results of the Softmax loss for each result in a batch.
  * Uses the softmax values obtained from forward propagation to compute the difference.
