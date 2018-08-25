@@ -1,18 +1,8 @@
-// this project was forked from https://github.com/tbennun/cudnn-training
-// Disclaimer: No Warrenty. Use at your own risk.
-/*
- * This code is released into the public domain.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
 
-//#define CUDNN_MAJOR 7    // CUDA 9.0  cudnn64_7.dll
+// Disclaimer: No Warranty. Use at your own risk.  (See License Information in Root)
+// this project was forked from https://github.com/tbennun/cudnn-training
+
+#define CUDNN_MAJOR 7    // CUDA 9.0  cudnn64_7.dll
 
 // choose zero or one from the next two lines   (none= Standard SGD)
 //#define USE_NESTEROV_MOMENTUM
@@ -79,6 +69,9 @@ static inline unsigned int RoundUp(unsigned int nominator, unsigned int denomina
     return (nominator + denominator - 1) / denominator;
 }
 
+
+
+// from https://github.com/tbennun/cudnn-training
 /**
  * Saves a PGM grayscale image out of unsigned 8-bit data
  */
@@ -324,60 +317,6 @@ struct FullyConnectedLayer
 
 #include "NNkernels.h"
 
-
-
-
-#ifdef USE_NESTEROV_MOMENTUM
-
-__global__ void NesterovMomentumWeightUpdate(float *weights,  float *gradients, float *v, float learning_rate, float MomentumUpdate,  int size)
-{
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= size)
-        return;
-
-    float v_prev = v[idx];
-    v[idx] = MomentumUpdate * v[idx] + learning_rate * gradients[idx];
-                    // here + learning_rate (cause its already negated)
-    weights[idx] += -MomentumUpdate * v_prev + (1.0f + MomentumUpdate) * v[idx];
-
-/*	
-  #if 0  // TEST ONLY    SGD Momentum
-    const float MomentumUpdate = 0.9f;
-    v[idx] = MomentumUpdate * v[idx] + learning_rate * gradients[idx];
-    weights[idx] += v[idx];
-  #endif
-
-  #if 0 // TEST ONLY   (same as calling cublasSaxpy(...))
-    // pure SGD:
-    float  v0  = learning_rate * gradients[idx];
-    weights[idx] += v0;
-  #endif
-*/
-}
-#endif
-
-
-
-#ifdef USE_ADAM
-__global__ void AdamWeightUpdate(float *weights, float *gradients, float *v, float *m, float learning_rate, float beta1, float beta2, float beta1_t, float beta2_t,  int size)
-{
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx >= size)
-    return;
-
-  // Adam: http://cs231n.github.io/neural-networks-3/
-  float dx = gradients[idx];
-  m[idx] = beta1 * m[idx] + (1 - beta1) * dx;
-  float mt = m[idx] / (1 - beta1_t);
-  v[idx] = beta2 * v[idx] + (1 - beta2) * (dx * dx);
-  float vt = v[idx] / (1 - beta2_t);
-
-  const float eps = 1e-8;
-  weights[idx] += learning_rate * mt / (sqrt(vt) + eps);
-    // NOTE: learning_rate is already negated
-}
-
-#endif
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1130,9 +1069,6 @@ struct TrainingContext
 
 int main(int argc, char **argv)
 {
-#ifdef USE_GFLAGS
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
-#endif
 
     size_t width, height, channels = 1;
 
