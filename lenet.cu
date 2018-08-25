@@ -21,6 +21,9 @@
 // comment the next line to use without dropout layer
 #define USE_DROPOUT_LAYER
 
+// comment the next line to use default learning rate update (decaying ~1/T)
+#define USE_SCHEDULED_LEARNING_RATE
+
 
 #include <cstdio>
 #include <cstdlib>
@@ -1464,10 +1467,15 @@ int main(int argc, char **argv)
                                 d_gconv1, d_gconv1bias, d_dpool1,  d_dconv1relu,  d_gconv2, d_gconv2bias, d_dconv2, d_dpool2,  d_dconv2relu, d_gfc1, d_gfc1bias, 
                                 d_dfc1, d_dfc1relu, d_gfc2, d_gfc2bias, d_dfc2, d_cudnn_workspace, d_onevec);
         
-        
-        // Compute learning rate
+#ifdef USE_SCHEDULED_LEARNING_RATE	    
+	float StepDecayScheduleDrop = 0.56;
+	float StepDecayScheduleEpochsDrop = 250.0f;
+        float learningRate = static_cast<float>(FLAGS_learning_rate * pow(StepDecayScheduleDrop, floor((1.0 + (float)iter) / StepDecayScheduleEpochsDrop)));
+#else
+        // Compute learning rate  (decaying ~1/T)
         float learningRate = static_cast<float>(FLAGS_learning_rate * pow((1.0 + FLAGS_lr_gamma * iter), (-FLAGS_lr_power)));
-
+#endif
+	    
         // Update weights
         context.UpdateWeights(learningRate, conv1, conv2,
                               d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
