@@ -4,18 +4,6 @@
 
 #define CUDNN_MAJOR 7    // CUDA 9.0  cudnn64_7.dll
 
-// choose zero or one from the next two lines   (none= Standard SGD)
-//#define USE_NESTEROV_MOMENTUM
-#define USE_ADAM
-
-// comment the next line to use without dropout layer
-//#define USE_DROPOUT_LAYER
-
-// comment the next line to use default learning rate update (decaying ~1/T)
-#define USE_SCHEDULED_LEARNING_RATE
-
-
-
 // =========================================================================================================
 // SWITCHES:
 
@@ -316,10 +304,9 @@ int main(int argc, char **argv)
     // Initialize CUDNN/CUBLAS training context
     TrainingContext context(FLAGS_gpu, FLAGS_batch_size, conv1, pool1, conv2, pool2, fc1, fc2);
     
-#ifdef USE_DROPOUT_LAYER
-    float dropRate = 0.4f;
+    float dropRate = (float)FLAGS_drop_rate;  // NOTE: if drop rate is 0.0 internally drop out layer is not applied
     context.InitDropout(dropRate, FLAGS_batch_size, /*features: */ 1,  /* wid= */  fc1.outputs, /* hei: */  1);
-#endif    
+	
     
     // Determine initial network structure
     bool bRet = true;
