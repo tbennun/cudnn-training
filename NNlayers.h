@@ -14,6 +14,8 @@ struct ConvBiasLayer
     int in_channels, out_channels, kernel_size;
     int in_width, in_height, out_width, out_height;
 
+    int inputs, outputs;
+    
     std::vector<float> pneurons, pbias;
 
     
@@ -27,6 +29,9 @@ struct ConvBiasLayer
         in_height = in_h_;
         out_width = in_w_ - kernel_size_ + 1;
         out_height = in_h_ - kernel_size_ + 1;
+                      
+        inputs = in_channels * in_width * in_height;
+        outputs = out_channels * out_width * out_height;                      
     }
 
     bool FromFile(const char *fileprefix)
