@@ -136,11 +136,11 @@ int main(int argc, char **argv)
         std::uniform_real_distribution<> dfc2(-wfc2, wfc2);
 
         // Randomize network
-        for (auto&& iter : conv1.pconv)
+        for (auto&& iter : conv1.pneurons)
             iter = static_cast<float>(dconv1(gen));
         for (auto&& iter : conv1.pbias)
             iter = static_cast<float>(dconv1(gen));
-        for (auto&& iter : conv2.pconv)
+        for (auto&& iter : conv2.pneurons)
             iter = static_cast<float>(dconv2(gen));
         for (auto&& iter : conv2.pbias)
             iter = static_cast<float>(dconv2(gen));
@@ -182,40 +182,42 @@ int main(int argc, char **argv)
     float *d_pconv1, *d_pconv1bias, *d_pconv2, *d_pconv2bias;
     float *d_pfc1, *d_pfc1bias, *d_pfc2, *d_pfc2bias;
     
-    checkCudaErrors(cudaMalloc(&d_pconv1,     sizeof(float) * conv1.pconv.size()));
+    checkCudaErrors(cudaMalloc(&d_pconv1,     sizeof(float) * conv1.pneurons.size()));
     checkCudaErrors(cudaMalloc(&d_pconv1bias, sizeof(float) * conv1.pbias.size()));
-    checkCudaErrors(cudaMalloc(&d_pconv2,     sizeof(float) * conv2.pconv.size()));
+    checkCudaErrors(cudaMalloc(&d_pconv2,     sizeof(float) * conv2.pneurons.size()));
     checkCudaErrors(cudaMalloc(&d_pconv2bias, sizeof(float) * conv2.pbias.size()));
     checkCudaErrors(cudaMalloc(&d_pfc1,       sizeof(float) * fc1.pneurons.size()));
     checkCudaErrors(cudaMalloc(&d_pfc1bias,   sizeof(float) * fc1.pbias.size()));
     checkCudaErrors(cudaMalloc(&d_pfc2,       sizeof(float) * fc2.pneurons.size()));
     checkCudaErrors(cudaMalloc(&d_pfc2bias,   sizeof(float) * fc2.pbias.size()));    
 
+
    
     // Momentum/Adam "v" network parameters
     float *d_vconv1=NULL, *d_vconv1bias=NULL, *d_vconv2=NULL, *d_vconv2bias=NULL;
     float *d_vfc1=NULL, *d_vfc1bias=NULL, *d_vfc2=NULL, *d_vfc2bias=NULL;
     
-#if defined(USE_NESTEROV_MOMENTUM) || defined(USE_ADAM)
-      checkCudaErrors(cudaMalloc(&d_vconv1, sizeof(float) * conv1.pconv.size()));
+    if ((FLAGS_momentum > 0.0) || Adam)
+    {
+      checkCudaErrors(cudaMalloc(&d_vconv1, sizeof(float) * conv1.pneurons.size()));
       checkCudaErrors(cudaMalloc(&d_vconv1bias, sizeof(float) * conv1.pbias.size()));
-      checkCudaErrors(cudaMalloc(&d_vconv2, sizeof(float) * conv2.pconv.size()));
+      checkCudaErrors(cudaMalloc(&d_vconv2, sizeof(float) * conv2.pneurons.size()));
       checkCudaErrors(cudaMalloc(&d_vconv2bias, sizeof(float) * conv2.pbias.size()));
       checkCudaErrors(cudaMalloc(&d_vfc1, sizeof(float) * fc1.pneurons.size()));
       checkCudaErrors(cudaMalloc(&d_vfc1bias, sizeof(float) * fc1.pbias.size()));
       checkCudaErrors(cudaMalloc(&d_vfc2, sizeof(float) * fc2.pneurons.size()));
       checkCudaErrors(cudaMalloc(&d_vfc2bias, sizeof(float) * fc2.pbias.size()));
 
-      FillZeroes<<<RoundUp(conv1.pconv.size(), BW), BW>>>(d_vconv1, conv1.pconv.size());
+      FillZeroes<<<RoundUp(conv1.pneurons.size(), BW), BW>>>(d_vconv1, conv1.pneurons.size());
       FillZeroes<<<RoundUp(conv1.pbias.size(), BW), BW>>>(d_vconv1bias, conv1.pbias.size());
-      FillZeroes<<<RoundUp(conv2.pconv.size(), BW), BW>>>(d_vconv2, conv2.pconv.size());
+      FillZeroes<<<RoundUp(conv2.pneurons.size(), BW), BW>>>(d_vconv2, conv2.pneurons.size());
       FillZeroes<<<RoundUp(conv2.pbias.size(), BW), BW>>>(d_vconv2bias, conv2.pbias.size());
 
       FillZeroes<<<RoundUp(fc1.pneurons.size(), BW), BW>>>(d_vfc1, fc1.pneurons.size());
       FillZeroes<<<RoundUp(fc1.pbias.size(), BW), BW>>>(d_vfc1bias, fc1.pbias.size());
       FillZeroes<<<RoundUp(fc2.pneurons.size(), BW), BW>>>(d_vfc2, fc2.pneurons.size());
       FillZeroes<<<RoundUp(fc2.pbias.size(), BW), BW>>>(d_vfc2bias, fc2.pbias.size());
-#endif
+    }
         
 	
 	
@@ -223,29 +225,30 @@ int main(int argc, char **argv)
     float *d_mconv1=NULL, *d_mconv1bias=NULL, *d_mconv2=NULL, *d_mconv2bias=NULL;
     float *d_mfc1=NULL, *d_mfc1bias=NULL, *d_mfc2=NULL, *d_mfc2bias=NULL;	
 
-#if defined(USE_ADAM)
-      checkCudaErrors(cudaMalloc(&d_mconv1, sizeof(float) * conv1.pconv.size()));
+    if (Adam || Nadam)
+    {
+      checkCudaErrors(cudaMalloc(&d_mconv1,     sizeof(float) * conv1.pneurons.size()));
       checkCudaErrors(cudaMalloc(&d_mconv1bias, sizeof(float) * conv1.pbias.size()));
-      checkCudaErrors(cudaMalloc(&d_mconv2, sizeof(float) * conv2.pconv.size()));
+      checkCudaErrors(cudaMalloc(&d_mconv2,     sizeof(float) * conv2.pneurons.size()));
       checkCudaErrors(cudaMalloc(&d_mconv2bias, sizeof(float) * conv2.pbias.size()));
-      checkCudaErrors(cudaMalloc(&d_mfc1, sizeof(float) * fc1.pneurons.size()));
-      checkCudaErrors(cudaMalloc(&d_mfc1bias, sizeof(float) * fc1.pbias.size()));
-      checkCudaErrors(cudaMalloc(&d_mfc2, sizeof(float) * fc2.pneurons.size()));
-      checkCudaErrors(cudaMalloc(&d_mfc2bias, sizeof(float) * fc2.pbias.size()));
+      checkCudaErrors(cudaMalloc(&d_mfc1,       sizeof(float) * fc1.pneurons.size()));
+      checkCudaErrors(cudaMalloc(&d_mfc1bias,   sizeof(float) * fc1.pbias.size()));
+      checkCudaErrors(cudaMalloc(&d_mfc2,       sizeof(float) * fc2.pneurons.size()));
+      checkCudaErrors(cudaMalloc(&d_mfc2bias,   sizeof(float) * fc2.pbias.size()));
 
       // in the first few time steps the vectors m,v are both initialized and therefore biased at zero, 
       // before they fully “warm up”. 
 
-      FillZeroes<<<RoundUp(conv1.pconv.size(), BW), BW>>>(d_mconv1, conv1.pconv.size());
+      FillZeroes<<<RoundUp(conv1.pneurons.size(), BW), BW>>>(d_mconv1, conv1.pneurons.size());
       FillZeroes<<<RoundUp(conv1.pbias.size(), BW), BW>>>(d_mconv1bias, conv1.pbias.size());
-      FillZeroes<<<RoundUp(conv2.pconv.size(), BW), BW>>>(d_mconv2, conv2.pconv.size());
+      FillZeroes<<<RoundUp(conv2.pneurons.size(), BW), BW>>>(d_mconv2, conv2.pneurons.size());
       FillZeroes<<<RoundUp(conv2.pbias.size(), BW), BW>>>(d_mconv2bias, conv2.pbias.size());
 
       FillZeroes<<<RoundUp(fc1.pneurons.size(), BW), BW>>>(d_mfc1, fc1.pneurons.size());
       FillZeroes<<<RoundUp(fc1.pbias.size(), BW), BW>>>(d_mfc1bias, fc1.pbias.size());
       FillZeroes<<<RoundUp(fc2.pneurons.size(), BW), BW>>>(d_mfc2, fc2.pneurons.size());
-      FillZeroes<<<RoundUp(fc2.pbias.size(), BW), BW>>>(d_mfc2bias, fc2.pbias.size());	
-#endif
+      FillZeroes<<<RoundUp(fc2.pbias.size(), BW), BW>>>(d_mfc2bias, fc2.pbias.size());
+    }
 	
 	
     
@@ -253,15 +256,16 @@ int main(int argc, char **argv)
     float *d_gconv1, *d_gconv1bias, *d_gconv2, *d_gconv2bias;
     float *d_gfc1, *d_gfc1bias, *d_gfc2, *d_gfc2bias;
     
-    checkCudaErrors(cudaMalloc(&d_gconv1,     sizeof(float) * conv1.pconv.size()));
-    checkCudaErrors(cudaMalloc(&d_gconv1bias, sizeof(float) * conv1.pbias.size()));
-    checkCudaErrors(cudaMalloc(&d_gconv2,     sizeof(float) * conv2.pconv.size()));
-    checkCudaErrors(cudaMalloc(&d_gconv2bias, sizeof(float) * conv2.pbias.size()));
-    checkCudaErrors(cudaMalloc(&d_gfc1,       sizeof(float) * fc1.pneurons.size()));
-    checkCudaErrors(cudaMalloc(&d_gfc1bias,   sizeof(float) * fc1.pbias.size()));    
-    checkCudaErrors(cudaMalloc(&d_gfc2,       sizeof(float) * fc2.pneurons.size()));
-    checkCudaErrors(cudaMalloc(&d_gfc2bias,   sizeof(float) * fc2.pbias.size()));
-
+    checkCudaErrors(cudaMalloc(&d_gconv1,       sizeof(float) * conv1.pneurons.size()));
+    checkCudaErrors(cudaMalloc(&d_gconv1bias,   sizeof(float) * conv1.pbias.size()));
+    checkCudaErrors(cudaMalloc(&d_gconv2,       sizeof(float) * conv2.pneurons.size()));
+    checkCudaErrors(cudaMalloc(&d_gconv2bias,   sizeof(float) * conv2.pbias.size()));
+    checkCudaErrors(cudaMalloc(&d_gfc1,         sizeof(float) * fc1.pneurons.size()));
+    checkCudaErrors(cudaMalloc(&d_gfc1bias,     sizeof(float) * fc1.pbias.size()));    
+    checkCudaErrors(cudaMalloc(&d_gfc2,         sizeof(float) * fc2.pneurons.size()));
+    checkCudaErrors(cudaMalloc(&d_gfc2bias,     sizeof(float) * fc2.pbias.size()));
+	
+	
     float *d_dconv1relu, *d_dconv2relu; 
     checkCudaErrors(cudaMalloc(&d_dconv1relu,     sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                         * conv1.out_width)); // same dimension as on d_dpool1
     checkCudaErrors(cudaMalloc(&d_dconv2relu,     sizeof(float) * context.m_batchSize * conv2.out_channels * conv2.out_height                         * conv2.out_width));  // same dimension as on d_dpool2
@@ -290,15 +294,16 @@ int main(int argc, char **argv)
     /////////////////////////////////////////////////////////////////////////////
 
     // Copy initial network to device
-    checkCudaErrors(cudaMemcpyAsync(d_pconv1, &conv1.pconv[0],     sizeof(float) * conv1.pconv.size(),  cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pconv1bias, &conv1.pbias[0], sizeof(float) * conv1.pbias.size(),  cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pconv2, &conv2.pconv[0],     sizeof(float) * conv2.pconv.size(),  cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pconv2bias, &conv2.pbias[0], sizeof(float) * conv2.pbias.size(),  cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pfc1, &fc1.pneurons[0],      sizeof(float) * fc1.pneurons.size(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pfc1bias, &fc1.pbias[0],     sizeof(float) * fc1.pbias.size(),    cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pfc2, &fc2.pneurons[0],      sizeof(float) * fc2.pneurons.size(), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pfc2bias, &fc2.pbias[0],     sizeof(float) * fc2.pbias.size(),    cudaMemcpyHostToDevice));
-    
+    checkCudaErrors(cudaMemcpyAsync(d_pconv1, &conv1.pneurons[0],       sizeof(float) * conv1.pneurons.size(),  cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pconv1bias, &conv1.pbias[0],      sizeof(float) * conv1.pbias.size(),   cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pconv2, &conv2.pneurons[0],       sizeof(float) * conv2.pneurons.size(),  cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pconv2bias, &conv2.pbias[0],      sizeof(float) * conv2.pbias.size(),   cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pfc1, &fc1.pneurons[0],           sizeof(float) * fc1.pneurons.size(),  cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pfc1bias, &fc1.pbias[0],          sizeof(float) * fc1.pbias.size(),        cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pfc2, &fc2.pneurons[0],           sizeof(float) * fc2.pneurons.size(),  cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pfc2bias, &fc2.pbias[0],          sizeof(float) * fc2.pbias.size(),        cudaMemcpyHostToDevice));
+
+
     // Fill one-vector with ones
     FillOnes<<<RoundUp(context.m_batchSize, BW), BW>>>(d_onevec, context.m_batchSize);
 
@@ -317,10 +322,11 @@ int main(int argc, char **argv)
     // Use SGD to train the network
     checkCudaErrors(cudaDeviceSynchronize());
     auto t1 = std::chrono::high_resolution_clock::now();
-    for (int iter = 0; iter < FLAGS_iterations; ++iter)
+    float momentum = (float)FLAGS_momentum;	
+    for (int iteration = 0; iteration < FLAGS_iterations; ++iteration)
     {
         // Train
-        int imageid = iter % (train_size / context.m_batchSize);
+        int imageid = iteration % (train_size / context.m_batchSize);  // this wraps around to the beginning of the data set in case of the last batch block
 
         // Prepare current batch on device
         checkCudaErrors(cudaMemcpyAsync(d_data, &train_images_float[imageid * context.m_batchSize * width*height*channels],
@@ -336,34 +342,63 @@ int main(int argc, char **argv)
 
         // Backward propagation
         context.Backpropagation(conv1, pool1, conv2, pool2,
-                                d_data, d_labels, d_conv1, d_conv1relu, d_pool1, d_conv2, d_conv2relu, d_pool2,  d_fc1, d_fc1relu, d_fc2, d_fc2smax, d_dlossdata,
+                                d_data, d_labels, d_conv1, d_conv1relu, d_pool1,  d_conv2, d_conv2relu, d_pool2,  d_fc1, d_fc1relu, d_fc2, d_fc2smax, d_dlossdata,
                                 d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
-                                d_gconv1, d_gconv1bias, d_dpool1,  d_dconv1relu,  d_gconv2, d_gconv2bias, d_dconv2, d_dpool2,  d_dconv2relu, d_gfc1, d_gfc1bias, 
+                                d_gconv1, d_gconv1bias, d_dpool1, d_dconv1relu,  d_gconv2, d_gconv2bias, d_dconv2, d_dpool2,  d_dconv2relu, d_gfc1, d_gfc1bias, 
                                 d_dfc1, d_dfc1relu, d_gfc2, d_gfc2bias, d_dfc2, d_cudnn_workspace, d_onevec);
-        
-#ifdef USE_SCHEDULED_LEARNING_RATE	    
-	float StepDecayScheduleDrop = 0.56;
-	float StepDecayScheduleEpochsDrop = 250.0f;
-        float learningRate = static_cast<float>(FLAGS_learning_rate * pow(StepDecayScheduleDrop, floor((1.0 + (float)iter) / StepDecayScheduleEpochsDrop)));
-#else
-        // Compute learning rate  (decaying ~1/T)
-        float learningRate = static_cast<float>(FLAGS_learning_rate * pow((1.0 + FLAGS_lr_gamma * iter), (-FLAGS_lr_power)));
+
+	    
+        // Compute learning rate
+        float learningRate;
+#if 0
+        if (PolicySteps)
+        {
+          int iStep = 0;
+          while ( iStep < PolicySteps)
+          {
+            if (iteration >= LearningRatePolicy[iStep].iterationStep) break;
+            ++iStep;
+          }
+          if (iStep >= PolicySteps)  iStep = PolicySteps - 1;
+          learningRate = LearningRatePolicy[iStep].LearningRate;
+        }
+        else 
 #endif
+       if (ConstantLearningRate)
+       {
+         learningRate = static_cast<float>(FLAGS_learning_rate);
+       }
+       else if  (ExponentialDecayK != 0.0)   // 0.0 = OFF
+       {
+            // Exponential Decay
+           learningRate = static_cast<float>(FLAGS_learning_rate * exp(-ExponentialDecayK * (float)iteration));
+       }
+       else if (StepDecayScheduleDrop)    // 0.0 = OFF
+       {
+            // Step decay schedule drops the learning rate by a factor every few epochs.
+            learningRate = static_cast<float>(FLAGS_learning_rate * pow(StepDecayScheduleDrop, floor((1.0 + (float)iteration) / StepDecayScheduleEpochsDrop)));
+       }
+       else // default "inv" method   (the learning rate is decaying as ~1/T)
+       {
+          learningRate = static_cast<float>(FLAGS_learning_rate * pow((1.0 + FLAGS_lr_gamma * iteration), (-FLAGS_lr_power)));
+       }
+	    
+
 	    
         // Update weights
         context.UpdateWeights(learningRate, conv1, conv2,
                               d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                               d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias,
 			      
-                             d_vconv1,      d_vconv1bias,
-                             d_vconv2,      d_vconv2bias,
-                             d_vfc1,        d_vfc1bias,
-                             d_vfc2,        d_vfc2bias,
-			      
-                             d_mconv1,      d_mconv1bias, 
-                             d_mconv2,      d_mconv2bias,
-                             d_mfc1,        d_mfc1bias,
-                             d_mfc2,        d_mfc2bias);
+                             d_vconv1,  d_vconv1bias,    // for Nesterov Momentum + Adam + Adamax + Nadam + Nadamax
+                             d_vconv2,  d_vconv2bias,
+                             d_vfc1,    d_vfc1bias,
+                             d_vfc2,    d_vfc2bias,
+
+                             d_mconv1,  d_mconv1bias,  // for Adam + Nadam + Adamax + Nadam + Nadamax
+                             d_mconv2,  d_mconv2bias,
+                             d_mfc1,    d_mfc1bias,
+                             d_mfc2,    d_mfc2bias);
     }
     checkCudaErrors(cudaDeviceSynchronize());
     auto t2 = std::chrono::high_resolution_clock::now();
@@ -373,9 +408,9 @@ int main(int argc, char **argv)
     if (FLAGS_save_data)
     {
         // Copy trained weights from GPU to CPU
-        checkCudaErrors(cudaMemcpy(&conv1.pconv[0], d_pconv1, sizeof(float) * conv1.pconv.size(), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&conv1.pneurons[0], d_pconv1, sizeof(float) * conv1.pneurons.size(), cudaMemcpyDeviceToHost));
         checkCudaErrors(cudaMemcpy(&conv1.pbias[0], d_pconv1bias, sizeof(float) * conv1.pbias.size(), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(&conv2.pconv[0], d_pconv2, sizeof(float) * conv2.pconv.size(), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&conv2.pneurons[0], d_pconv2, sizeof(float) * conv2.pneurons.size(), cudaMemcpyDeviceToHost));
         checkCudaErrors(cudaMemcpy(&conv2.pbias[0], d_pconv2bias, sizeof(float) * conv2.pbias.size(), cudaMemcpyDeviceToHost));
         checkCudaErrors(cudaMemcpy(&fc1.pneurons[0], d_pfc1, sizeof(float) * fc1.pneurons.size(), cudaMemcpyDeviceToHost));
         checkCudaErrors(cudaMemcpy(&fc1.pbias[0], d_pfc1bias, sizeof(float) * fc1.pbias.size(), cudaMemcpyDeviceToHost));
@@ -448,23 +483,19 @@ int main(int argc, char **argv)
         
     // Free data structures
     checkCudaErrors(cudaFree(d_data));
-    
     checkCudaErrors(cudaFree(d_conv1));
-    checkCudaErrors(cudaFree(d_pool1));
     checkCudaErrors(cudaFree(d_conv1relu));
     checkCudaErrors(cudaFree(d_dconv1relu));
-    
+    checkCudaErrors(cudaFree(d_pool1));    
     checkCudaErrors(cudaFree(d_conv2));
-    checkCudaErrors(cudaFree(d_pool2));
     checkCudaErrors(cudaFree(d_conv2relu));
     checkCudaErrors(cudaFree(d_dconv2relu));
-  
-    
+    checkCudaErrors(cudaFree(d_pool2));
     checkCudaErrors(cudaFree(d_fc1));
     checkCudaErrors(cudaFree(d_fc1relu));
-    checkCudaErrors(cudaFree(d_dfc1relu));
-    
+    checkCudaErrors(cudaFree(d_dfc1relu)); 
     checkCudaErrors(cudaFree(d_fc2));
+
     checkCudaErrors(cudaFree(d_pconv1));
     checkCudaErrors(cudaFree(d_pconv1bias));
     checkCudaErrors(cudaFree(d_pconv2));
@@ -473,6 +504,32 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_pfc1bias));
     checkCudaErrors(cudaFree(d_pfc2));
     checkCudaErrors(cudaFree(d_pfc2bias));
+
+    if ((FLAGS_momentum > 0.0) || Adam)
+    {
+      checkCudaErrors(cudaFree(d_vconv1));
+      checkCudaErrors(cudaFree(d_vconv1bias));
+      checkCudaErrors(cudaFree(d_vconv2));
+      checkCudaErrors(cudaFree(d_vconv2bias));
+      checkCudaErrors(cudaFree(d_vfc1));
+      checkCudaErrors(cudaFree(d_vfc1bias));
+      checkCudaErrors(cudaFree(d_vfc2));
+      checkCudaErrors(cudaFree(d_vfc2bias));
+    }
+
+    if (Adam || Nadam)
+    {
+      checkCudaErrors(cudaFree(d_mconv1));
+      checkCudaErrors(cudaFree(d_mconv1bias));
+      checkCudaErrors(cudaFree(d_mconv2));
+      checkCudaErrors(cudaFree(d_mconv2bias));
+      checkCudaErrors(cudaFree(d_mfc1));
+      checkCudaErrors(cudaFree(d_mfc1bias));
+      checkCudaErrors(cudaFree(d_mfc2));
+      checkCudaErrors(cudaFree(d_mfc2bias));
+    }
+
+
     checkCudaErrors(cudaFree(d_gconv1));
     checkCudaErrors(cudaFree(d_gconv1bias));
     checkCudaErrors(cudaFree(d_gconv2));
@@ -483,30 +540,6 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_gfc2));
     checkCudaErrors(cudaFree(d_gfc2bias));
     checkCudaErrors(cudaFree(d_dfc2));
-    
-    
-#if defined(USE_NESTEROV_MOMENTUM) || defined(USE_ADAM)
-      checkCudaErrors(cudaFree(d_vconv1));
-      checkCudaErrors(cudaFree(d_vconv1bias));
-      checkCudaErrors(cudaFree(d_vconv2));
-      checkCudaErrors(cudaFree(d_vconv2bias));
-      checkCudaErrors(cudaFree(d_vfc1));
-      checkCudaErrors(cudaFree(d_vfc1bias));
-      checkCudaErrors(cudaFree(d_vfc2));
-      checkCudaErrors(cudaFree(d_vfc2bias));    
-#endif    
-	
-#if defined(USE_ADAM)
-      checkCudaErrors(cudaFree(d_mconv1));
-      checkCudaErrors(cudaFree(d_mconv1bias));
-      checkCudaErrors(cudaFree(d_mconv2));
-      checkCudaErrors(cudaFree(d_mconv2bias));
-      checkCudaErrors(cudaFree(d_mfc1));
-      checkCudaErrors(cudaFree(d_mfc1bias));
-      checkCudaErrors(cudaFree(d_mfc2));
-      checkCudaErrors(cudaFree(d_mfc2bias));
-#endif
-    
     checkCudaErrors(cudaFree(d_dpool1));
     checkCudaErrors(cudaFree(d_dconv2));
     checkCudaErrors(cudaFree(d_dpool2));    
