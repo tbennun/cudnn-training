@@ -15,11 +15,11 @@
 //#define CUDNN_MAJOR 7    // CUDA 9.0  cudnn64_7.dll
 
 // choose zero or one from the next two lines   (none= Standard SGD)
-#define USE_NESTEROV_MOMENTUM
-//#define USE_ADAM
+//#define USE_NESTEROV_MOMENTUM
+#define USE_ADAM
 
 // comment the next line to use without dropout layer
-#define USE_DROPOUT_LAYER
+//#define USE_DROPOUT_LAYER
 
 // comment the next line to use default learning rate update (decaying ~1/T)
 #define USE_SCHEDULED_LEARNING_RATE
