@@ -128,69 +128,14 @@ int main(int argc, char **argv)
 	
   int flags = 8;  // select Nadam  (YET FOR TEST)
 
-  // flags bit 0: set=Use Adam
-  // flags bit 1: set=Use Adamax
-  // flags bit 2: set=Use Nadam
-  // flags bit 3: set=Use Nadamax 
-  // flags bit 8: set=constant learning rate (clear= default: decaying as ~1/T)
-  if (flags & 1)  Adam = true; else Adam = false;
-  if (flags & 2)  Adamax = true; else Adamax = false;
-  if (flags & 4)  Nadam = true; else Nadam = false;
-  if (flags & 8)  Nadamax = true; else Nadamax = false;
-  if (flags & 256)  ConstantLearningRate = true; else ConstantLearningRate = false;
-  
-  if (Adamax) Adam = true;  // all basics are required on both Adam and Adamax
-  if (Nadam || Nadamax)
-  {
-    Adam = true;  // all basics are required on both Adam and Adamax
-    if (FLAGS_momentum == 0.0)  { Nadam = false;  Nadamax = false;} // fall-through to basic Adam if no momentum value present
-  }
-    
+	
+  UpdateGlobalParameters(BATCH_SIZE, BW, ITERATIONS, LEARNING_RATE,
+                                           LEARNING_RATE_POLICY_GAMMA, LEARNING_RATE_POLICY_POWER,
+                                           StepDecayScheduleDrop, StepDecayScheduleEpochsDrop,
+                                           ExponentialDecayK,
+                                           MOMENTUM, DROP_RATE, flags);	
 
-  if (batchSize)
-  {
-    FLAGS_batch_size = batchSize;
-    BW = batchSize * 2;
-  }
-  else
-  {
-    FLAGS_batch_size = BATCH_SIZE;
-    BW = defaultBW;
-  };
-
-  if (userBW)
-    BW = userBW;
-
-  if (iterations)
-    FLAGS_iterations = iterations;
-  else
-    FLAGS_iterations = ITERATIONS;
-
-  if (LearningRate != 0.0f)
-    FLAGS_learning_rate = LearningRate;
-  else
-    FLAGS_learning_rate = LEARNING_RATE;
-
-
-  if (LearningRatePolicyGamma)
-     FLAGS_lr_gamma = LearningRatePolicyGamma;
-  else
-     FLAGS_lr_gamma = LEARNING_RATE_POLICY_GAMMA;
-
-  if (LearningRatePolicyPower)
-    FLAGS_lr_power = LearningRatePolicyPower;
-  else
-    FLAGS_lr_power = LEARNING_RATE_POLICY_POWER;
-
-
-    FLAGS_momentum = Momentum;   // 0.0 here means: simply use pure SDG
-    FLAGS_drop_rate = DropRate;  // 0.0 here means: simply avoid DropOut Layer
-
-    StepDecayScheduleDrop = DecayScheduleDrop; //  0.5; //  0.0=OFF
-    StepDecayScheduleEpochsDrop = DecayScheduleEpochsDrop;  // 250.0f;
-
-    ExponentialDecayK = expDecayK;
-
+	
 
    size_t width, height, channels = 1;
 
