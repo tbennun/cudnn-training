@@ -5,86 +5,9 @@
 #define CUDNN_MAJOR 7    // CUDA 9.0  cudnn64_7.dll
 
 // =========================================================================================================
-// SWITCHES:
-
-
-//#define ALLOW_SAVE_AS_PGM_FILE
-
-
-// =========================================================================================================
 // Definitions 
 
-
-#define BATCH_SIZE  64 // 32 // 256 // 4096  // ORG=64
-// BW = Block width for CUDA kernels
-#define defaultBW  (BATCH_SIZE  * 2)      // 128
-#define ITERATIONS   1000
-#define LEARNING_RATE 0.001 //  ORG=0.01
-#define LEARNING_RATE_POLICY_GAMMA 0.0001 // 0.00001    // 0.000001 // ORG: 0.0001
-#define LEARNING_RATE_POLICY_POWER   0.85 // 0.8 // 0.31 // 0.51 // 0.2 // 0.69  // 0.75  // ORG: 0.75
-// Adam:
-#define BETA1 0.9f     // ORG: 0.9f
-#define BETA2 0.999f // ORG:  0.999f
-
-
-#define DROP_RATE 0.0 // 0.001 // 0.4      0.0=OFF
-#define MOMENTUM 0.9  // 0.0=OFF
-
-
-
-    // Constant versions of gflags (from https://github.com/tbennun/cudnn-training)
-    #define DEFINE_int32(flag, default_value, description) const int FLAGS_##flag = (default_value)
-    #define DEFINE_uint64(flag, default_value, description) const unsigned long long FLAGS_##flag = (default_value)
-    #define DEFINE_bool(flag, default_value, description) const bool FLAGS_##flag = (default_value)
-    #define DEFINE_double(flag, default_value, description) const double FLAGS_##flag = (default_value)
-    #define DEFINE_string(flag, default_value, description) const std::string FLAGS_##flag ((default_value))
-
-
-
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////////
-// Command-line flags
-
-
-// Application parameters
-DEFINE_int32(gpu, 0, "The GPU ID to use");
-//DEFINE_int32(iterations, 1000, "Number of iterations for training"); // 7.8% Error rate (on classification)
-//DEFINE_int32(iterations, ITERATIONS, "Number of iterations for training");
-DEFINE_int32(random_seed, -1, "Override random seed (default uses std::random_device)");
-DEFINE_int32(classify, -1, "Number of images to classify to compute error rate (default uses entire test set)");
-
-unsigned long long FLAGS_batch_size = BATCH_SIZE;
-unsigned long long BW = defaultBW; // BATCH_SIZE * 2;
-int FLAGS_iterations = ITERATIONS;
-double FLAGS_learning_rate = LEARNING_RATE; 
-double FLAGS_lr_gamma = LEARNING_RATE_POLICY_GAMMA;
-double FLAGS_lr_power = LEARNING_RATE_POLICY_POWER;
-double FLAGS_momentum = MOMENTUM;
-double FLAGS_drop_rate = DROP_RATE;
-
-bool Adam = false;
-float Beta1 = BETA1; //  0.9f;     // decay term
-float Beta2 = BETA2; // 0.999f; // decay term
-
-bool Adamax = false;
-bool Nadam = false;
-bool Nadamax = false;
-
-bool ConstantLearningRate = false;
-
-
-double ExponentialDecayK = 0.001f; 
-
-double StepDecayScheduleDrop = 0.5; //  0.0=OFF
-double StepDecayScheduleEpochsDrop = 250.0f;
-
-DEFINE_bool(pretrained, false, "Use the pretrained CUDNN model as input");
-DEFINE_bool(save_data, false, "Save pretrained weights to file");
-
-
+#include "GlobalInits.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // helper utilities
@@ -92,42 +15,33 @@ DEFINE_bool(save_data, false, "Save pretrained weights to file");
 #include "helpers.h"
 #include "readubyte.h"
 
-
-
 // Filenames
 DEFINE_string(train_images, "train-images.idx3-ubyte", "Training images filename");
 DEFINE_string(train_labels, "train-labels.idx1-ubyte", "Training labels filename");
 DEFINE_string(test_images, "t10k-images.idx3-ubyte", "Test images filename");
 DEFINE_string(test_labels, "t10k-labels.idx1-ubyte", "Test labels filename");
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Layer representations
 
 #include "NNlayers.h"
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // GPU Kernels
 
 #include "NNkernels.h"
 
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////
 // CUDNN/CUBLAS training context
 
 #include "NNcontext.h"
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Main function
 
 int main(int argc, char **argv)
 {
-	
   int flags = 8;  // select Nadam  (YET FOR TEST)
-
 	
   UpdateGlobalParameters(BATCH_SIZE, BW, ITERATIONS, LEARNING_RATE,
                                            LEARNING_RATE_POLICY_GAMMA, LEARNING_RATE_POLICY_POWER,
