@@ -42,8 +42,8 @@ DEFINE_string(test_labels, "t10k-labels.idx1-ubyte", "Test labels filename");
 int main(int argc, char **argv)
 {
   int flags = 8;  // select Nadam  (YET FOR TEST)
-	
-  UpdateGlobalParameters(BATCH_SIZE, BW, ITERATIONS, LEARNING_RATE,
+  #define LEARNING_RATE2  0.001
+  UpdateGlobalParameters(BATCH_SIZE, BW, ITERATIONS, LEARNING_RATE2,
                                            LEARNING_RATE_POLICY_GAMMA, LEARNING_RATE_POLICY_POWER,
                                            StepDecayScheduleDrop, StepDecayScheduleEpochsDrop,
                                            ExponentialDecayK,
@@ -386,7 +386,7 @@ int main(int argc, char **argv)
 
 	    
         // Update weights
-        context.UpdateWeights(learningRate, conv1, conv2,
+        context.UpdateWeights(learningRate, momentum, conv1, conv2,
                               d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
                               d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias,
 			      
