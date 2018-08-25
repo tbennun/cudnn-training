@@ -41,7 +41,7 @@ DEFINE_string(test_labels, "t10k-labels.idx1-ubyte", "Test labels filename");
 
 int main(int argc, char **argv)
 {
-  int flags = 4;  // select Nadam  (YET FOR TEST)
+  int flags = 4;  // select Nadam (bit 3)    (YET FOR TEST)
   #define LEARNING_RATE2  0.001
   UpdateGlobalParameters(BATCH_SIZE, BW, ITERATIONS, LEARNING_RATE2,
                                            LEARNING_RATE_POLICY_GAMMA, LEARNING_RATE_POLICY_POWER,
