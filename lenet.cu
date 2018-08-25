@@ -1,8 +1,5 @@
 
-// Disclaimer: No Warranty. Use at your own risk.  (See License Information in Root)
-// this project was forked from https://github.com/tbennun/cudnn-training
-
-
+// Disclaimer: No Warranty. Use at your own risk.  
 /*
  * This code is released into the public domain.
  *
@@ -16,7 +13,7 @@
  */
 
 
-#define CUDNN_MAJOR 7    // CUDA 9.0  cudnn64_7.dll
+//#define CUDNN_MAJOR 7    // CUDA 9.0  cudnn64_7.dll
 
 // =========================================================================================================
 // Definitions 
