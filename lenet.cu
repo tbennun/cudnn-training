@@ -174,9 +174,9 @@ int main(int argc, char **argv)
     //-----------------------------------------------------------------------------------------------------------------------------------------
     checkCudaErrors(cudaMalloc(&d_data,    sizeof(float) * context.m_batchSize * channels           * height                            * width));
     checkCudaErrors(cudaMalloc(&d_labels,  sizeof(float) * context.m_batchSize * 1                  * 1                                 * 1));
-    checkCudaErrors(cudaMalloc(&d_conv1,   sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                  * conv1.out_width));
+    checkCudaErrors(cudaMalloc(&d_conv1,   sizeof(float) * context.m_batchSize * conv1.outputs)); // conv1.out_channels * conv1.out_height                  * conv1.out_width));
     checkCudaErrors(cudaMalloc(&d_pool1,   sizeof(float) * context.m_batchSize * conv1.out_channels * (conv1.out_height / pool1.stride) * (conv1.out_width / pool1.stride)));
-    checkCudaErrors(cudaMalloc(&d_conv2,   sizeof(float) * context.m_batchSize * conv2.out_channels * conv2.out_height                  * conv2.out_width));
+    checkCudaErrors(cudaMalloc(&d_conv2,   sizeof(float) * context.m_batchSize * conv2.outputs)); // conv2.out_channels * conv2.out_height                  * conv2.out_width));
     checkCudaErrors(cudaMalloc(&d_pool2,   sizeof(float) * context.m_batchSize * conv2.out_channels * (conv2.out_height / pool2.stride) * (conv2.out_width / pool2.stride)));
     checkCudaErrors(cudaMalloc(&d_fc1,     sizeof(float) * context.m_batchSize * fc1.outputs));    
     checkCudaErrors(cudaMalloc(&d_fc1relu, sizeof(float) * context.m_batchSize * fc1.outputs));
@@ -184,8 +184,8 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMalloc(&d_fc2smax, sizeof(float) * context.m_batchSize * fc2.outputs));    
 
     float *d_conv1relu, *d_conv2relu;
-    checkCudaErrors(cudaMalloc(&d_conv1relu,sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                          * conv1.out_width));   // same dimension as on  conv1
-    checkCudaErrors(cudaMalloc(&d_conv2relu,sizeof(float) * context.m_batchSize * conv2.out_channels * conv2.out_height                        * conv2.out_width));    // same dimension as on  conv2
+    checkCudaErrors(cudaMalloc(&d_conv1relu,sizeof(float) * context.m_batchSize * conv1.outputs)); // conv1.out_channels * conv1.out_height                          * conv1.out_width));   // same dimension as on  conv1
+    checkCudaErrors(cudaMalloc(&d_conv2relu,sizeof(float) * context.m_batchSize * conv2.outputs)); // conv2.out_channels * conv2.out_height                        * conv2.out_width));    // same dimension as on  conv2
 
   
     
@@ -278,16 +278,16 @@ int main(int argc, char **argv)
 	
 	
     float *d_dconv1relu, *d_dconv2relu; 
-    checkCudaErrors(cudaMalloc(&d_dconv1relu,     sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                         * conv1.out_width)); // same dimension as on d_dpool1
-    checkCudaErrors(cudaMalloc(&d_dconv2relu,     sizeof(float) * context.m_batchSize * conv2.out_channels * conv2.out_height                         * conv2.out_width));  // same dimension as on d_dpool2
+    checkCudaErrors(cudaMalloc(&d_dconv1relu,     sizeof(float) * context.m_batchSize * conv1.outputs)); // conv1.out_channels * conv1.out_height                         * conv1.out_width)); // same dimension as on d_dpool1
+    checkCudaErrors(cudaMalloc(&d_dconv2relu,     sizeof(float) * context.m_batchSize * conv2.outputs)); // conv2.out_channels * conv2.out_height                         * conv2.out_width));  // same dimension as on d_dpool2
     
     
     // Differentials w.r.t. data
     float *d_dpool1, *d_dpool2, *d_dconv2, *d_dfc1, *d_dfc1relu, *d_dfc2, *d_dfc2smax, *d_dlossdata;
     //                         Buffer     | Element       | N                   | C                  | H                                 | W
     //-----------------------------------------------------------------------------------------------------------------------------------------
-    checkCudaErrors(cudaMalloc(&d_dpool1,   sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                  * conv1.out_width));
-    checkCudaErrors(cudaMalloc(&d_dpool2,   sizeof(float) * context.m_batchSize * conv2.out_channels * conv2.out_height                  * conv2.out_width));
+    checkCudaErrors(cudaMalloc(&d_dpool1,   sizeof(float) * context.m_batchSize * conv1.outputs)); // conv1.out_channels * conv1.out_height                  * conv1.out_width));
+    checkCudaErrors(cudaMalloc(&d_dpool2,   sizeof(float) * context.m_batchSize * conv2.outputs)); // conv2.out_channels * conv2.out_height                  * conv2.out_width));
     checkCudaErrors(cudaMalloc(&d_dconv2,   sizeof(float) * context.m_batchSize * conv1.out_channels * (conv1.out_height / pool1.stride) * (conv1.out_width / pool1.stride)));
     checkCudaErrors(cudaMalloc(&d_dfc1,     sizeof(float) * context.m_batchSize * fc1.inputs));
     checkCudaErrors(cudaMalloc(&d_dfc1relu, sizeof(float) * context.m_batchSize * fc1.outputs));
@@ -306,13 +306,13 @@ int main(int argc, char **argv)
 
     // Copy initial network to device
     checkCudaErrors(cudaMemcpyAsync(d_pconv1, &conv1.pneurons[0],       sizeof(float) * conv1.pneurons.size(),  cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pconv1bias, &conv1.pbias[0],      sizeof(float) * conv1.pbias.size(),   cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pconv1bias, &conv1.pbias[0],      sizeof(float) * conv1.pbias.size(),     cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpyAsync(d_pconv2, &conv2.pneurons[0],       sizeof(float) * conv2.pneurons.size(),  cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pconv2bias, &conv2.pbias[0],      sizeof(float) * conv2.pbias.size(),   cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pfc1, &fc1.pneurons[0],           sizeof(float) * fc1.pneurons.size(),  cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pfc1bias, &fc1.pbias[0],          sizeof(float) * fc1.pbias.size(),        cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pfc2, &fc2.pneurons[0],           sizeof(float) * fc2.pneurons.size(),  cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpyAsync(d_pfc2bias, &fc2.pbias[0],          sizeof(float) * fc2.pbias.size(),        cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pconv2bias, &conv2.pbias[0],      sizeof(float) * conv2.pbias.size(),     cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pfc1, &fc1.pneurons[0],           sizeof(float) * fc1.pneurons.size(),    cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pfc1bias, &fc1.pbias[0],          sizeof(float) * fc1.pbias.size(),       cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pfc2, &fc2.pneurons[0],           sizeof(float) * fc2.pneurons.size(),    cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpyAsync(d_pfc2bias, &fc2.pbias[0],          sizeof(float) * fc2.pbias.size(),       cudaMemcpyHostToDevice));
 
 
     // Fill one-vector with ones
@@ -419,14 +419,14 @@ int main(int argc, char **argv)
     if (FLAGS_save_data)
     {
         // Copy trained weights from GPU to CPU
-        checkCudaErrors(cudaMemcpy(&conv1.pneurons[0], d_pconv1, sizeof(float) * conv1.pneurons.size(), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(&conv1.pbias[0], d_pconv1bias, sizeof(float) * conv1.pbias.size(), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(&conv2.pneurons[0], d_pconv2, sizeof(float) * conv2.pneurons.size(), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(&conv2.pbias[0], d_pconv2bias, sizeof(float) * conv2.pbias.size(), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(&fc1.pneurons[0], d_pfc1, sizeof(float) * fc1.pneurons.size(), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(&fc1.pbias[0], d_pfc1bias, sizeof(float) * fc1.pbias.size(), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(&fc2.pneurons[0], d_pfc2, sizeof(float) * fc2.pneurons.size(), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(&fc2.pbias[0], d_pfc2bias, sizeof(float) * fc2.pbias.size(), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&conv1.pneurons[0], d_pconv1, sizeof(float)  * conv1.pneurons.size(), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&conv1.pbias[0], d_pconv1bias, sizeof(float) * conv1.pbias.size(),    cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&conv2.pneurons[0], d_pconv2, sizeof(float)  * conv2.pneurons.size(), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&conv2.pbias[0], d_pconv2bias, sizeof(float) * conv2.pbias.size(),    cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&fc1.pneurons[0], d_pfc1, sizeof(float)      * fc1.pneurons.size(),   cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&fc1.pbias[0], d_pfc1bias, sizeof(float)     * fc1.pbias.size(),      cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&fc2.pneurons[0], d_pfc2, sizeof(float)      * fc2.pneurons.size(),   cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(&fc2.pbias[0], d_pfc2bias, sizeof(float)     * fc2.pbias.size(),      cudaMemcpyDeviceToHost));
       
         // Now save data
         printf("Saving data to file\n");
