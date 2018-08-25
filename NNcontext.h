@@ -1,6 +1,6 @@
 #pragma once
 
-// Disclaimer: No Warranty. Use at your own risk.  (See License Information in Root)
+// Disclaimer: No Warranty. Use at your own risk.  
 
 
 #define CUDNN_MAJOR 7
