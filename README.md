@@ -135,7 +135,9 @@ Any help concerning learning rate, momentum, algorithm optimizaiton is appreciat
 Thank You tbennun for the Code! Great Project!
 ---------------------------------------------------------------------------------------------------------------
 
-for original version go to https://github.com/tbennun/cudnn-training
+for the original version go to https://github.com/tbennun/cudnn-training
+
+
 
 Prerequisites
 =============
