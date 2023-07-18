@@ -130,7 +130,7 @@ DEFINE_string(test_images, "t10k-images-idx3-ubyte", "Test images filename");
 DEFINE_string(test_labels, "t10k-labels-idx1-ubyte", "Test labels filename");
 
 // Solver parameters
-DEFINE_double(learning_rate, 0.01, "Base learning rate");
+DEFINE_double(learning_rate, 0.1, "Base learning rate");
 DEFINE_double(lr_gamma, 0.0001, "Learning rate policy gamma");
 DEFINE_double(lr_power, 0.75, "Learning rate policy power");
 
@@ -518,6 +518,24 @@ struct TrainingContext
                                               CUDNN_DATA_FLOAT,
                                               n, c,
                                               h, w));
+#if 1
+    cudnnConvolutionFwdAlgoPerf_t perfResults[CUDNN_CONVOLUTION_FWD_ALGO_COUNT];
+    int requestedAlgoCount = CUDNN_CONVOLUTION_FWD_ALGO_COUNT;
+    int returnedAlgoCount;
+    checkCUDNN(cudnnFindConvolutionForwardAlgorithm(
+        cudnnHandle,
+        srcTensorDesc,
+        filterDesc,
+        convDesc,
+        dstTensorDesc,
+        requestedAlgoCount,
+        &returnedAlgoCount,
+        perfResults
+    ));
+    cudnnConvolutionFwdAlgoPerf_t& algo_perf = perfResults[0];
+    algo = algo_perf.algo;
+    sizeInBytes = algo_perf.memory;
+#else
         checkCUDNN(cudnnGetConvolutionForwardAlgorithm(cudnnHandle,
                                                        srcTensorDesc,
                                                        filterDesc,
@@ -526,7 +544,6 @@ struct TrainingContext
                                                        CUDNN_CONVOLUTION_FWD_PREFER_FASTEST,
                                                        0,
                                                        &algo));
-        
         checkCUDNN(cudnnGetConvolutionForwardWorkspaceSize(cudnnHandle,
                                                            srcTensorDesc,
                                                            filterDesc,
@@ -535,6 +552,7 @@ struct TrainingContext
                                                            algo,
                                                            &sizeInBytes));
 
+#endif
         return sizeInBytes;
     }
 
@@ -626,6 +644,24 @@ struct TrainingContext
         // If backprop filter algorithm was requested
         if (falgo)
         {
+#if 1
+    cudnnConvolutionBwdFilterAlgoPerf_t perfResults[CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT];
+    int requestedAlgoCount = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT;
+    int returnedAlgoCount;
+    checkCUDNN(cudnnFindConvolutionBackwardFilterAlgorithm(
+        cudnnHandle,
+        srcTensorDesc,
+        dstTensorDesc,
+        convDesc,
+        filterDesc,
+        requestedAlgoCount,
+        &returnedAlgoCount,
+        perfResults
+    ));
+    cudnnConvolutionBwdFilterAlgoPerf_t& algo_perf = perfResults[0];
+    *falgo = algo_perf.algo;
+    tmpsize = algo_perf.memory;
+#else
             checkCUDNN(cudnnGetConvolutionBackwardFilterAlgorithm(
                 cudnnHandle, srcTensorDesc, dstTensorDesc, convDesc, filterDesc,
                 CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST, 0, falgo));
@@ -633,6 +669,7 @@ struct TrainingContext
             checkCUDNN(cudnnGetConvolutionBackwardFilterWorkspaceSize(
                 cudnnHandle, srcTensorDesc, dstTensorDesc, convDesc, filterDesc, 
                 *falgo, &tmpsize));
+#endif
 
             sizeInBytes = std::max(sizeInBytes, tmpsize);
         }
@@ -640,6 +677,24 @@ struct TrainingContext
         // If backprop data algorithm was requested
         if (dalgo)
         {
+#if 1
+    cudnnConvolutionBwdDataAlgoPerf_t perfResults[CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT];
+    int requestedAlgoCount = CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT;
+    int returnedAlgoCount;
+    checkCUDNN(cudnnFindConvolutionBackwardDataAlgorithm(
+        cudnnHandle,
+        filterDesc,
+        dstTensorDesc,
+        convDesc,
+        srcTensorDesc,
+        requestedAlgoCount,
+        &returnedAlgoCount,
+        perfResults
+    ));
+    cudnnConvolutionBwdDataAlgoPerf_t& algo_perf = perfResults[0];
+    *dalgo = algo_perf.algo;
+    tmpsize = algo_perf.memory;
+#else
             checkCUDNN(cudnnGetConvolutionBackwardDataAlgorithm(
                 cudnnHandle, filterDesc, dstTensorDesc, convDesc, srcTensorDesc,
                 CUDNN_CONVOLUTION_BWD_DATA_PREFER_FASTEST, 0, dalgo));
@@ -647,6 +702,7 @@ struct TrainingContext
             checkCUDNN(cudnnGetConvolutionBackwardDataWorkspaceSize(
                 cudnnHandle, filterDesc, dstTensorDesc, convDesc, srcTensorDesc, 
                 *dalgo, &tmpsize));
+#endif
 
             sizeInBytes = std::max(sizeInBytes, tmpsize);
         }
@@ -1102,12 +1158,16 @@ int main(int argc, char **argv)
         
     // Free data structures
     checkCudaErrors(cudaFree(d_data));
+    checkCudaErrors(cudaFree(d_labels));
     checkCudaErrors(cudaFree(d_conv1));
     checkCudaErrors(cudaFree(d_pool1));
     checkCudaErrors(cudaFree(d_conv2));
     checkCudaErrors(cudaFree(d_pool2));
     checkCudaErrors(cudaFree(d_fc1));
+    checkCudaErrors(cudaFree(d_fc1relu));
     checkCudaErrors(cudaFree(d_fc2));
+    checkCudaErrors(cudaFree(d_fc2smax));
+
     checkCudaErrors(cudaFree(d_pconv1));
     checkCudaErrors(cudaFree(d_pconv1bias));
     checkCudaErrors(cudaFree(d_pconv2));
@@ -1116,22 +1176,27 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_pfc1bias));
     checkCudaErrors(cudaFree(d_pfc2));
     checkCudaErrors(cudaFree(d_pfc2bias));
+
     checkCudaErrors(cudaFree(d_gconv1));
     checkCudaErrors(cudaFree(d_gconv1bias));
     checkCudaErrors(cudaFree(d_gconv2));
     checkCudaErrors(cudaFree(d_gconv2bias));
     checkCudaErrors(cudaFree(d_gfc1));
     checkCudaErrors(cudaFree(d_gfc1bias));
-    checkCudaErrors(cudaFree(d_dfc1));
     checkCudaErrors(cudaFree(d_gfc2));
     checkCudaErrors(cudaFree(d_gfc2bias));
-    checkCudaErrors(cudaFree(d_dfc2));
+
     checkCudaErrors(cudaFree(d_dpool1));
-    checkCudaErrors(cudaFree(d_dconv2));
     checkCudaErrors(cudaFree(d_dpool2));    
-    checkCudaErrors(cudaFree(d_labels));
+    checkCudaErrors(cudaFree(d_dconv2));
+    checkCudaErrors(cudaFree(d_dfc1));
+    checkCudaErrors(cudaFree(d_dfc1relu));
+    checkCudaErrors(cudaFree(d_dfc2));
+    checkCudaErrors(cudaFree(d_dfc2smax));
     checkCudaErrors(cudaFree(d_dlossdata));
+
     checkCudaErrors(cudaFree(d_onevec));
+
     if (d_cudnn_workspace != nullptr)
         checkCudaErrors(cudaFree(d_cudnn_workspace));
 
