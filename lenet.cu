@@ -1158,12 +1158,16 @@ int main(int argc, char **argv)
         
     // Free data structures
     checkCudaErrors(cudaFree(d_data));
+    checkCudaErrors(cudaFree(d_labels));
     checkCudaErrors(cudaFree(d_conv1));
     checkCudaErrors(cudaFree(d_pool1));
     checkCudaErrors(cudaFree(d_conv2));
     checkCudaErrors(cudaFree(d_pool2));
     checkCudaErrors(cudaFree(d_fc1));
+    checkCudaErrors(cudaFree(d_fc1relu));
     checkCudaErrors(cudaFree(d_fc2));
+    checkCudaErrors(cudaFree(d_fc2smax));
+
     checkCudaErrors(cudaFree(d_pconv1));
     checkCudaErrors(cudaFree(d_pconv1bias));
     checkCudaErrors(cudaFree(d_pconv2));
@@ -1172,22 +1176,27 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_pfc1bias));
     checkCudaErrors(cudaFree(d_pfc2));
     checkCudaErrors(cudaFree(d_pfc2bias));
+
     checkCudaErrors(cudaFree(d_gconv1));
     checkCudaErrors(cudaFree(d_gconv1bias));
     checkCudaErrors(cudaFree(d_gconv2));
     checkCudaErrors(cudaFree(d_gconv2bias));
     checkCudaErrors(cudaFree(d_gfc1));
     checkCudaErrors(cudaFree(d_gfc1bias));
-    checkCudaErrors(cudaFree(d_dfc1));
     checkCudaErrors(cudaFree(d_gfc2));
     checkCudaErrors(cudaFree(d_gfc2bias));
-    checkCudaErrors(cudaFree(d_dfc2));
+
     checkCudaErrors(cudaFree(d_dpool1));
-    checkCudaErrors(cudaFree(d_dconv2));
     checkCudaErrors(cudaFree(d_dpool2));    
-    checkCudaErrors(cudaFree(d_labels));
+    checkCudaErrors(cudaFree(d_dconv2));
+    checkCudaErrors(cudaFree(d_dfc1));
+    checkCudaErrors(cudaFree(d_dfc1relu));
+    checkCudaErrors(cudaFree(d_dfc2));
+    checkCudaErrors(cudaFree(d_dfc2smax));
     checkCudaErrors(cudaFree(d_dlossdata));
+
     checkCudaErrors(cudaFree(d_onevec));
+
     if (d_cudnn_workspace != nullptr)
         checkCudaErrors(cudaFree(d_cudnn_workspace));
 
