@@ -518,6 +518,24 @@ struct TrainingContext
                                               CUDNN_DATA_FLOAT,
                                               n, c,
                                               h, w));
+#if 1
+    cudnnConvolutionFwdAlgoPerf_t perfResults[CUDNN_CONVOLUTION_FWD_ALGO_COUNT];
+    int requestedAlgoCount = CUDNN_CONVOLUTION_FWD_ALGO_COUNT;
+    int returnedAlgoCount;
+    checkCUDNN(cudnnFindConvolutionForwardAlgorithm(
+        cudnnHandle,
+        srcTensorDesc,
+        filterDesc,
+        convDesc,
+        dstTensorDesc,
+        requestedAlgoCount,
+        &returnedAlgoCount,
+        perfResults
+    ));
+    cudnnConvolutionFwdAlgoPerf_t& algo_perf = perfResults[0];
+    algo = algo_perf.algo;
+    sizeInBytes = algo_perf.memory;
+#else
         checkCUDNN(cudnnGetConvolutionForwardAlgorithm(cudnnHandle,
                                                        srcTensorDesc,
                                                        filterDesc,
@@ -526,7 +544,6 @@ struct TrainingContext
                                                        CUDNN_CONVOLUTION_FWD_PREFER_FASTEST,
                                                        0,
                                                        &algo));
-        
         checkCUDNN(cudnnGetConvolutionForwardWorkspaceSize(cudnnHandle,
                                                            srcTensorDesc,
                                                            filterDesc,
@@ -535,6 +552,7 @@ struct TrainingContext
                                                            algo,
                                                            &sizeInBytes));
 
+#endif
         return sizeInBytes;
     }
 
@@ -626,6 +644,24 @@ struct TrainingContext
         // If backprop filter algorithm was requested
         if (falgo)
         {
+#if 1
+    cudnnConvolutionBwdFilterAlgoPerf_t perfResults[CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT];
+    int requestedAlgoCount = CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT;
+    int returnedAlgoCount;
+    checkCUDNN(cudnnFindConvolutionBackwardFilterAlgorithm(
+        cudnnHandle,
+        srcTensorDesc,
+        dstTensorDesc,
+        convDesc,
+        filterDesc,
+        requestedAlgoCount,
+        &returnedAlgoCount,
+        perfResults
+    ));
+    cudnnConvolutionBwdFilterAlgoPerf_t& algo_perf = perfResults[0];
+    *falgo = algo_perf.algo;
+    tmpsize = algo_perf.memory;
+#else
             checkCUDNN(cudnnGetConvolutionBackwardFilterAlgorithm(
                 cudnnHandle, srcTensorDesc, dstTensorDesc, convDesc, filterDesc,
                 CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST, 0, falgo));
@@ -633,6 +669,7 @@ struct TrainingContext
             checkCUDNN(cudnnGetConvolutionBackwardFilterWorkspaceSize(
                 cudnnHandle, srcTensorDesc, dstTensorDesc, convDesc, filterDesc, 
                 *falgo, &tmpsize));
+#endif
 
             sizeInBytes = std::max(sizeInBytes, tmpsize);
         }
@@ -640,6 +677,24 @@ struct TrainingContext
         // If backprop data algorithm was requested
         if (dalgo)
         {
+#if 1
+    cudnnConvolutionBwdDataAlgoPerf_t perfResults[CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT];
+    int requestedAlgoCount = CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT;
+    int returnedAlgoCount;
+    checkCUDNN(cudnnFindConvolutionBackwardDataAlgorithm(
+        cudnnHandle,
+        filterDesc,
+        dstTensorDesc,
+        convDesc,
+        srcTensorDesc,
+        requestedAlgoCount,
+        &returnedAlgoCount,
+        perfResults
+    ));
+    cudnnConvolutionBwdDataAlgoPerf_t& algo_perf = perfResults[0];
+    *dalgo = algo_perf.algo;
+    tmpsize = algo_perf.memory;
+#else
             checkCUDNN(cudnnGetConvolutionBackwardDataAlgorithm(
                 cudnnHandle, filterDesc, dstTensorDesc, convDesc, srcTensorDesc,
                 CUDNN_CONVOLUTION_BWD_DATA_PREFER_FASTEST, 0, dalgo));
@@ -647,6 +702,7 @@ struct TrainingContext
             checkCUDNN(cudnnGetConvolutionBackwardDataWorkspaceSize(
                 cudnnHandle, filterDesc, dstTensorDesc, convDesc, srcTensorDesc, 
                 *dalgo, &tmpsize));
+#endif
 
             sizeInBytes = std::max(sizeInBytes, tmpsize);
         }
