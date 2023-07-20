@@ -723,18 +723,26 @@ struct TrainingContext
         return sizeInBytes;
     }
 
-    void Backpropagation(ConvBiasLayer& layer_conv1, MaxPoolLayer& layer_pool1, ConvBiasLayer& layer_conv2, MaxPoolLayer& layer_pool2,
-                         float *data, float *labels, float *conv1, float *pool1, float *conv2, float *pool2, float *fc1, float *fc1relu,
-                         float *fc2, float *fc2smax, float *dloss_data,
-                         float *pconv1, float *pconv1bias,
-                         float *pconv2, float *pconv2bias,
-                         float *pfc1, float *pfc1bias,
-                         float *pfc2, float *pfc2bias,
-                         float *gconv1, float *gconv1bias, float *dpool1,
-                         float *gconv2, float *gconv2bias, float *dconv2, float *dpool2,
-                         float *gfc1, float *gfc1bias, float *dfc1, float *dfc1relu,
-                         float *gfc2, float *gfc2bias, float *dfc2,
-                         void *workspace, float *onevec)
+    void Backpropagation(
+        ConvBiasLayer& layer_conv1, MaxPoolLayer& layer_pool1, ConvBiasLayer& layer_conv2, MaxPoolLayer& layer_pool2,
+        const float *labels,
+
+        const float *data, const float *conv1, const float *pool1, const float *conv2, const float *pool2, const float *fc1, const float *fc1relu, const float *fc2, const float *fc2smax,
+        float *dloss_data,
+
+        const float *pconv2, const float *pfc1, const float *pfc2,
+
+        // [OUT]
+        float *gconv1, float *gconv1bias,
+        float *gconv2, float *gconv2bias,
+        float *gfc1, float *gfc1bias,
+        float *gfc2, float *gfc2bias,
+
+        // used internally as buffers
+        float *dpool1, float *dconv2, float *dpool2, float *dfc1, float *dfc1relu, float *dfc2,
+
+        void *workspace, float *onevec
+    )
     {
         float alpha = 1.0f, beta = 0.0f;
 
@@ -1084,11 +1092,27 @@ int main(int argc, char **argv)
         );
 
         // Backward propagation
-        context.Backpropagation(conv1, pool1, conv2, pool2,
-                                d_data, d_labels, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax, d_dlossdata,
-                                d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
-                                d_gconv1, d_gconv1bias, d_dpool1, d_gconv2, d_gconv2bias, d_dconv2, d_dpool2, d_gfc1, d_gfc1bias,
-                                d_dfc1, d_dfc1relu, d_gfc2, d_gfc2bias, d_dfc2, d_cudnn_workspace, d_onevec);
+        context.Backpropagation(
+            conv1, pool1, conv2, pool2,
+            d_labels,
+            // [IN]
+            d_data, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax,
+            d_dlossdata,
+
+            // [IN]
+            d_pconv2, d_pfc1, d_pfc2,
+
+            // [OUT]
+            d_gconv1, d_gconv1bias,
+            d_gconv2, d_gconv2bias,
+            d_gfc1, d_gfc1bias,
+            d_gfc2, d_gfc2bias,
+
+            // used internally as buffers
+            d_dpool1, d_dconv2, d_dpool2, d_dfc1, d_dfc1relu, d_dfc2,
+
+            d_cudnn_workspace, d_onevec
+        );
 
         // Compute learning rate
         float learningRate = static_cast<float>(FLAGS_learning_rate * pow((1.0 + FLAGS_lr_gamma * iter), (-FLAGS_lr_power)));
