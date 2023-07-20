@@ -556,12 +556,25 @@ struct TrainingContext
         return sizeInBytes;
     }
 
-    void ForwardPropagation(float *data, float *conv1, float *pool1, float *conv2, float *pool2, float *fc1, float *fc1relu,
-                            float *fc2, float *result,
-                            float *pconv1, float *pconv1bias,
-                            float *pconv2, float *pconv2bias,
-                            float *pfc1, float *pfc1bias,
-                            float *pfc2, float *pfc2bias, void *workspace, float *onevec)
+    void ForwardPropagation(
+        const float *data,
+        const float *pconv1, const float *pconv1bias,
+        const float *pconv2, const float *pconv2bias,
+        const float *pfc1, const float *pfc1bias,
+        const float *pfc2, const float *pfc2bias,
+
+        // [OUT]
+        float *conv1,
+        float *pool1,
+        float *conv2,
+        float *pool2,
+        float *fc1,
+        float *fc1relu,
+        float *fc2,
+        float *result,
+
+        void *workspace, const float *onevec
+    )
     {
         float alpha = 1.0f, beta = 0.0f;
         checkCudaErrors(cudaSetDevice(m_gpuid));
@@ -802,16 +815,21 @@ struct TrainingContext
         // No need for convBackwardData because there are no more layers below
     }
 
-    void UpdateWeights(float learning_rate,
-                       ConvBiasLayer& conv1, ConvBiasLayer& conv2,
-                       float *pconv1, float *pconv1bias,
-                       float *pconv2, float *pconv2bias,
-                       float *pfc1, float *pfc1bias,
-                       float *pfc2, float *pfc2bias,
-                       float *gconv1, float *gconv1bias,
-                       float *gconv2, float *gconv2bias,
-                       float *gfc1, float *gfc1bias,
-                       float *gfc2, float *gfc2bias)
+    void UpdateWeights(
+        float learning_rate,
+        ConvBiasLayer& conv1, ConvBiasLayer& conv2,
+
+        const float *gconv1, const float *gconv1bias,
+        const float *gconv2, const float *gconv2bias,
+        const float *gfc1, const float *gfc1bias,
+        const float *gfc2, const float *gfc2bias,
+
+        // [IN/OUT]
+        float *pconv1, float *pconv1bias,
+        float *pconv2, float *pconv2bias,
+        float *pfc1, float *pfc1bias,
+        float *pfc2, float *pfc2bias
+    )
     {
         float alpha = -learning_rate;
 
@@ -1056,9 +1074,14 @@ int main(int argc, char **argv)
                                         sizeof(float) * context.m_batchSize, cudaMemcpyHostToDevice));
 
         // Forward propagation
-        context.ForwardPropagation(d_data, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax,
-                                   d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
-                                   d_cudnn_workspace, d_onevec);
+        context.ForwardPropagation(
+            // [IN]
+            d_data, d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
+            // [OUT]
+            d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax,
+
+            d_cudnn_workspace, d_onevec
+        );
 
         // Backward propagation
         context.Backpropagation(conv1, pool1, conv2, pool2,
@@ -1071,9 +1094,14 @@ int main(int argc, char **argv)
         float learningRate = static_cast<float>(FLAGS_learning_rate * pow((1.0 + FLAGS_lr_gamma * iter), (-FLAGS_lr_power)));
 
         // Update weights
-        context.UpdateWeights(learningRate, conv1, conv2,
-                              d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
-                              d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias);
+        context.UpdateWeights(
+            learningRate,
+            conv1, conv2,
+            // [IN]
+            d_gconv1, d_gconv1bias, d_gconv2, d_gconv2bias, d_gfc1, d_gfc1bias, d_gfc2, d_gfc2bias,
+            // [IN/OUT]
+            d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias
+        );
     }
     checkCudaErrors(cudaDeviceSynchronize());
     auto t2 = std::chrono::high_resolution_clock::now();
@@ -1131,9 +1159,14 @@ int main(int argc, char **argv)
             checkCudaErrors(cudaMemcpyAsync(d_data, &data[0], sizeof(float) * width * height, cudaMemcpyHostToDevice));
 
             // Forward propagate test image
-            test_context.ForwardPropagation(d_data, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax,
-                                            d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias,
-                                            d_pfc2, d_pfc2bias, d_cudnn_workspace, d_onevec);
+            test_context.ForwardPropagation(
+                // [IN]
+                d_data, d_pconv1, d_pconv1bias, d_pconv2, d_pconv2bias, d_pfc1, d_pfc1bias, d_pfc2, d_pfc2bias,
+                // [OUT]
+                d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax,
+
+                d_cudnn_workspace, d_onevec
+            );
 
             // Perform classification
             std::vector<float> class_vec(10);
