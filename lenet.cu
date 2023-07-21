@@ -356,6 +356,9 @@ struct TrainingContext
 
     FullyConnectedLayer& ref_fc1, &ref_fc2;
 
+    // Differentials w.r.t. data
+    float *dpool1, *dpool2, *dconv2, *dfc1, *dfc1relu, *dfc2, *dloss_data;
+
     // Disable copying
     TrainingContext& operator=(const TrainingContext&) = delete;
     TrainingContext(const TrainingContext&) = delete;
@@ -442,10 +445,28 @@ struct TrainingContext
 
         // The workspace is allocated later (if necessary)
         m_workspaceSize = workspace;
+
+        //                         Buffer     | Element       | N                   | C                  | H                                 | W
+        //-----------------------------------------------------------------------------------------------------------------------------------------
+        checkCudaErrors(cudaMalloc(&dpool1,   sizeof(float) * m_batchSize * conv1.out_channels * conv1.out_height                  * conv1.out_width));
+        checkCudaErrors(cudaMalloc(&dconv2,   sizeof(float) * m_batchSize * conv1.out_channels * (conv1.out_height / pool1.stride) * (conv1.out_width / pool1.stride)));
+        checkCudaErrors(cudaMalloc(&dpool2,   sizeof(float) * m_batchSize * conv2.out_channels * conv2.out_height                  * conv2.out_width));
+        checkCudaErrors(cudaMalloc(&dfc1,     sizeof(float) * m_batchSize * fc1.inputs));
+        checkCudaErrors(cudaMalloc(&dfc1relu, sizeof(float) * m_batchSize * fc1.outputs));
+        checkCudaErrors(cudaMalloc(&dfc2,     sizeof(float) * m_batchSize * fc2.inputs));
+        checkCudaErrors(cudaMalloc(&dloss_data,sizeof(float) * m_batchSize * fc2.outputs));
     }
 
     ~TrainingContext()
     {
+        checkCudaErrors(cudaFree(dpool1));
+        checkCudaErrors(cudaFree(dpool2));
+        checkCudaErrors(cudaFree(dconv2));
+        checkCudaErrors(cudaFree(dfc1));
+        checkCudaErrors(cudaFree(dfc1relu));
+        checkCudaErrors(cudaFree(dfc2));
+        checkCudaErrors(cudaFree(dloss_data));
+
         checkCudaErrors(cudaSetDevice(m_gpuid));
 
         checkCudaErrors(cublasDestroy(cublasHandle));
@@ -728,7 +749,6 @@ struct TrainingContext
         const float *labels,
 
         const float *data, const float *conv1, const float *pool1, const float *conv2, const float *pool2, const float *fc1, const float *fc1relu, const float *fc2, const float *fc2smax,
-        float *dloss_data,
 
         const float *pconv2, const float *pfc1, const float *pfc2,
 
@@ -737,9 +757,6 @@ struct TrainingContext
         float *gconv2, float *gconv2bias,
         float *gfc1, float *gfc1bias,
         float *gfc2, float *gfc2bias,
-
-        // used internally as buffers
-        float *dpool1, float *dconv2, float *dpool2, float *dfc1, float *dfc1relu, float *dfc2,
 
         void *workspace, float *onevec
     )
@@ -1020,19 +1037,6 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaMalloc(&d_gfc2,       sizeof(float) * fc2.pneurons.size()));
     checkCudaErrors(cudaMalloc(&d_gfc2bias,   sizeof(float) * fc2.pbias.size()));
 
-    // Differentials w.r.t. data
-    float *d_dpool1, *d_dpool2, *d_dconv2, *d_dfc1, *d_dfc1relu, *d_dfc2, *d_dfc2smax, *d_dlossdata;
-    //                         Buffer     | Element       | N                   | C                  | H                                 | W
-    //-----------------------------------------------------------------------------------------------------------------------------------------
-    checkCudaErrors(cudaMalloc(&d_dpool1,   sizeof(float) * context.m_batchSize * conv1.out_channels * conv1.out_height                  * conv1.out_width));
-    checkCudaErrors(cudaMalloc(&d_dpool2,   sizeof(float) * context.m_batchSize * conv2.out_channels * conv2.out_height                  * conv2.out_width));
-    checkCudaErrors(cudaMalloc(&d_dconv2,   sizeof(float) * context.m_batchSize * conv1.out_channels * (conv1.out_height / pool1.stride) * (conv1.out_width / pool1.stride)));
-    checkCudaErrors(cudaMalloc(&d_dfc1,     sizeof(float) * context.m_batchSize * fc1.inputs));
-    checkCudaErrors(cudaMalloc(&d_dfc1relu, sizeof(float) * context.m_batchSize * fc1.outputs));
-    checkCudaErrors(cudaMalloc(&d_dfc2,     sizeof(float) * context.m_batchSize * fc2.inputs));
-    checkCudaErrors(cudaMalloc(&d_dfc2smax, sizeof(float) * context.m_batchSize * fc2.outputs));
-    checkCudaErrors(cudaMalloc(&d_dlossdata,sizeof(float) * context.m_batchSize * fc2.outputs));
-
     // Temporary buffers and workspaces
     float *d_onevec;
     void *d_cudnn_workspace = nullptr;
@@ -1097,7 +1101,6 @@ int main(int argc, char **argv)
             d_labels,
             // [IN]
             d_data, d_conv1, d_pool1, d_conv2, d_pool2, d_fc1, d_fc1relu, d_fc2, d_fc2smax,
-            d_dlossdata,
 
             // [IN]
             d_pconv2, d_pfc1, d_pfc2,
@@ -1107,9 +1110,6 @@ int main(int argc, char **argv)
             d_gconv2, d_gconv2bias,
             d_gfc1, d_gfc1bias,
             d_gfc2, d_gfc2bias,
-
-            // used internally as buffers
-            d_dpool1, d_dconv2, d_dpool2, d_dfc1, d_dfc1relu, d_dfc2,
 
             d_cudnn_workspace, d_onevec
         );
@@ -1242,15 +1242,6 @@ int main(int argc, char **argv)
     checkCudaErrors(cudaFree(d_gfc1bias));
     checkCudaErrors(cudaFree(d_gfc2));
     checkCudaErrors(cudaFree(d_gfc2bias));
-
-    checkCudaErrors(cudaFree(d_dpool1));
-    checkCudaErrors(cudaFree(d_dpool2));
-    checkCudaErrors(cudaFree(d_dconv2));
-    checkCudaErrors(cudaFree(d_dfc1));
-    checkCudaErrors(cudaFree(d_dfc1relu));
-    checkCudaErrors(cudaFree(d_dfc2));
-    checkCudaErrors(cudaFree(d_dfc2smax));
-    checkCudaErrors(cudaFree(d_dlossdata));
 
     checkCudaErrors(cudaFree(d_onevec));
 
